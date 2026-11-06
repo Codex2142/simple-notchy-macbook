@@ -415,6 +415,22 @@ fileprivate struct FfiConverterUInt32: FfiConverterPrimitive {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterInt32: FfiConverterPrimitive {
+    typealias FfiType = Int32
+    typealias SwiftType = Int32
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Int32 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Int32, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterUInt64: FfiConverterPrimitive {
     typealias FfiType = UInt64
     typealias SwiftType = UInt64
@@ -537,6 +553,8 @@ public protocol IslandCoreProtocol : AnyObject {
      */
     func addStateListener(listener: IslandStateListener) 
     
+    func cacheAndParseLyrics(title: String, artist: String, lrcContent: String, elapsedMs: UInt64) throws  -> FfiLyricSyncSnapshot
+    
     func captureClipboardItem(input: FfiClipboardCaptureInput, nowSecs: Int64) throws  -> FfiClipboardItem
     
     func clearActivity(nowMs: UInt64) throws  -> FfiIslandViewState
@@ -556,6 +574,8 @@ public protocol IslandCoreProtocol : AnyObject {
     func expand(nowMs: UInt64) throws  -> FfiIslandViewState
     
     func finishTimerSession(sessionId: Int64, status: String, nowSecs: Int64) throws  -> FfiTimerSession
+    
+    func getCachedLyricsSnapshot(title: String, artist: String, elapsedMs: UInt64) throws  -> FfiLyricSyncSnapshot?
     
     func getRetentionPolicy() throws  -> FfiRetentionPolicy
     
@@ -696,6 +716,17 @@ open func addStateListener(listener: IslandStateListener) {try! rustCall() {
 }
 }
     
+open func cacheAndParseLyrics(title: String, artist: String, lrcContent: String, elapsedMs: UInt64)throws  -> FfiLyricSyncSnapshot {
+    return try  FfiConverterTypeFfiLyricSyncSnapshot.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_cache_and_parse_lyrics(self.uniffiClonePointer(),
+        FfiConverterString.lower(title),
+        FfiConverterString.lower(artist),
+        FfiConverterString.lower(lrcContent),
+        FfiConverterUInt64.lower(elapsedMs),$0
+    )
+})
+}
+    
 open func captureClipboardItem(input: FfiClipboardCaptureInput, nowSecs: Int64)throws  -> FfiClipboardItem {
     return try  FfiConverterTypeFfiClipboardItem.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_capture_clipboard_item(self.uniffiClonePointer(),
@@ -768,6 +799,16 @@ open func finishTimerSession(sessionId: Int64, status: String, nowSecs: Int64)th
         FfiConverterInt64.lower(sessionId),
         FfiConverterString.lower(status),
         FfiConverterInt64.lower(nowSecs),$0
+    )
+})
+}
+    
+open func getCachedLyricsSnapshot(title: String, artist: String, elapsedMs: UInt64)throws  -> FfiLyricSyncSnapshot? {
+    return try  FfiConverterOptionTypeFfiLyricSyncSnapshot.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_get_cached_lyrics_snapshot(self.uniffiClonePointer(),
+        FfiConverterString.lower(title),
+        FfiConverterString.lower(artist),
+        FfiConverterUInt64.lower(elapsedMs),$0
     )
 })
 }
@@ -1493,6 +1534,170 @@ public func FfiConverterTypeFfiIslandViewState_lower(_ value: FfiIslandViewState
 }
 
 
+public struct FfiLyricLine {
+    public var timestampMs: UInt64
+    public var text: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(timestampMs: UInt64, text: String) {
+        self.timestampMs = timestampMs
+        self.text = text
+    }
+}
+
+
+
+extension FfiLyricLine: Equatable, Hashable {
+    public static func ==(lhs: FfiLyricLine, rhs: FfiLyricLine) -> Bool {
+        if lhs.timestampMs != rhs.timestampMs {
+            return false
+        }
+        if lhs.text != rhs.text {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(timestampMs)
+        hasher.combine(text)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiLyricLine: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiLyricLine {
+        return
+            try FfiLyricLine(
+                timestampMs: FfiConverterUInt64.read(from: &buf), 
+                text: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiLyricLine, into buf: inout [UInt8]) {
+        FfiConverterUInt64.write(value.timestampMs, into: &buf)
+        FfiConverterString.write(value.text, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiLyricLine_lift(_ buf: RustBuffer) throws -> FfiLyricLine {
+    return try FfiConverterTypeFfiLyricLine.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiLyricLine_lower(_ value: FfiLyricLine) -> RustBuffer {
+    return FfiConverterTypeFfiLyricLine.lower(value)
+}
+
+
+public struct FfiLyricSyncSnapshot {
+    public var lines: [FfiLyricLine]
+    public var currentIndex: Int32
+    public var previousLine: String
+    public var currentLine: String
+    public var nextLine: String
+    public var hasSyncedLyrics: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(lines: [FfiLyricLine], currentIndex: Int32, previousLine: String, currentLine: String, nextLine: String, hasSyncedLyrics: Bool) {
+        self.lines = lines
+        self.currentIndex = currentIndex
+        self.previousLine = previousLine
+        self.currentLine = currentLine
+        self.nextLine = nextLine
+        self.hasSyncedLyrics = hasSyncedLyrics
+    }
+}
+
+
+
+extension FfiLyricSyncSnapshot: Equatable, Hashable {
+    public static func ==(lhs: FfiLyricSyncSnapshot, rhs: FfiLyricSyncSnapshot) -> Bool {
+        if lhs.lines != rhs.lines {
+            return false
+        }
+        if lhs.currentIndex != rhs.currentIndex {
+            return false
+        }
+        if lhs.previousLine != rhs.previousLine {
+            return false
+        }
+        if lhs.currentLine != rhs.currentLine {
+            return false
+        }
+        if lhs.nextLine != rhs.nextLine {
+            return false
+        }
+        if lhs.hasSyncedLyrics != rhs.hasSyncedLyrics {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(lines)
+        hasher.combine(currentIndex)
+        hasher.combine(previousLine)
+        hasher.combine(currentLine)
+        hasher.combine(nextLine)
+        hasher.combine(hasSyncedLyrics)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiLyricSyncSnapshot: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiLyricSyncSnapshot {
+        return
+            try FfiLyricSyncSnapshot(
+                lines: FfiConverterSequenceTypeFfiLyricLine.read(from: &buf), 
+                currentIndex: FfiConverterInt32.read(from: &buf), 
+                previousLine: FfiConverterString.read(from: &buf), 
+                currentLine: FfiConverterString.read(from: &buf), 
+                nextLine: FfiConverterString.read(from: &buf), 
+                hasSyncedLyrics: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiLyricSyncSnapshot, into buf: inout [UInt8]) {
+        FfiConverterSequenceTypeFfiLyricLine.write(value.lines, into: &buf)
+        FfiConverterInt32.write(value.currentIndex, into: &buf)
+        FfiConverterString.write(value.previousLine, into: &buf)
+        FfiConverterString.write(value.currentLine, into: &buf)
+        FfiConverterString.write(value.nextLine, into: &buf)
+        FfiConverterBool.write(value.hasSyncedLyrics, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiLyricSyncSnapshot_lift(_ buf: RustBuffer) throws -> FfiLyricSyncSnapshot {
+    return try FfiConverterTypeFfiLyricSyncSnapshot.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiLyricSyncSnapshot_lower(_ value: FfiLyricSyncSnapshot) -> RustBuffer {
+    return FfiConverterTypeFfiLyricSyncSnapshot.lower(value)
+}
+
+
 public struct FfiModuleSetting {
     public var moduleId: String
     public var enabled: Bool
@@ -1654,19 +1859,23 @@ public struct FfiNowPlayingTrack {
     public var title: String
     public var artist: String
     public var album: String
+    public var artworkUrl: String
     public var durationSecs: UInt32
     public var elapsedSecs: UInt32
+    public var elapsedMs: UInt64
     public var isPlaying: Bool
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(sourceApp: String, title: String, artist: String, album: String, durationSecs: UInt32, elapsedSecs: UInt32, isPlaying: Bool) {
+    public init(sourceApp: String, title: String, artist: String, album: String, artworkUrl: String, durationSecs: UInt32, elapsedSecs: UInt32, elapsedMs: UInt64, isPlaying: Bool) {
         self.sourceApp = sourceApp
         self.title = title
         self.artist = artist
         self.album = album
+        self.artworkUrl = artworkUrl
         self.durationSecs = durationSecs
         self.elapsedSecs = elapsedSecs
+        self.elapsedMs = elapsedMs
         self.isPlaying = isPlaying
     }
 }
@@ -1687,10 +1896,16 @@ extension FfiNowPlayingTrack: Equatable, Hashable {
         if lhs.album != rhs.album {
             return false
         }
+        if lhs.artworkUrl != rhs.artworkUrl {
+            return false
+        }
         if lhs.durationSecs != rhs.durationSecs {
             return false
         }
         if lhs.elapsedSecs != rhs.elapsedSecs {
+            return false
+        }
+        if lhs.elapsedMs != rhs.elapsedMs {
             return false
         }
         if lhs.isPlaying != rhs.isPlaying {
@@ -1704,8 +1919,10 @@ extension FfiNowPlayingTrack: Equatable, Hashable {
         hasher.combine(title)
         hasher.combine(artist)
         hasher.combine(album)
+        hasher.combine(artworkUrl)
         hasher.combine(durationSecs)
         hasher.combine(elapsedSecs)
+        hasher.combine(elapsedMs)
         hasher.combine(isPlaying)
     }
 }
@@ -1722,8 +1939,10 @@ public struct FfiConverterTypeFfiNowPlayingTrack: FfiConverterRustBuffer {
                 title: FfiConverterString.read(from: &buf), 
                 artist: FfiConverterString.read(from: &buf), 
                 album: FfiConverterString.read(from: &buf), 
+                artworkUrl: FfiConverterString.read(from: &buf), 
                 durationSecs: FfiConverterUInt32.read(from: &buf), 
                 elapsedSecs: FfiConverterUInt32.read(from: &buf), 
+                elapsedMs: FfiConverterUInt64.read(from: &buf), 
                 isPlaying: FfiConverterBool.read(from: &buf)
         )
     }
@@ -1733,8 +1952,10 @@ public struct FfiConverterTypeFfiNowPlayingTrack: FfiConverterRustBuffer {
         FfiConverterString.write(value.title, into: &buf)
         FfiConverterString.write(value.artist, into: &buf)
         FfiConverterString.write(value.album, into: &buf)
+        FfiConverterString.write(value.artworkUrl, into: &buf)
         FfiConverterUInt32.write(value.durationSecs, into: &buf)
         FfiConverterUInt32.write(value.elapsedSecs, into: &buf)
+        FfiConverterUInt64.write(value.elapsedMs, into: &buf)
         FfiConverterBool.write(value.isPlaying, into: &buf)
     }
 }
@@ -2595,6 +2816,30 @@ fileprivate struct FfiConverterOptionTypeFfiActivityInfo: FfiConverterRustBuffer
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeFfiLyricSyncSnapshot: FfiConverterRustBuffer {
+    typealias SwiftType = FfiLyricSyncSnapshot?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiLyricSyncSnapshot.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiLyricSyncSnapshot.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeFfiNowPlayingTrack: FfiConverterRustBuffer {
     typealias SwiftType = FfiNowPlayingTrack?
 
@@ -2710,6 +2955,31 @@ fileprivate struct FfiConverterSequenceTypeFfiDisplayProfile: FfiConverterRustBu
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeFfiDisplayProfile.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFfiLyricLine: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiLyricLine]
+
+    public static func write(_ value: [FfiLyricLine], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiLyricLine.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiLyricLine] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiLyricLine]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiLyricLine.read(from: &buf))
         }
         return seq
     }
@@ -2836,6 +3106,9 @@ private var initializationResult: InitializationResult = {
     if (uniffi_island_bridge_checksum_method_islandcore_add_state_listener() != 39203) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_island_bridge_checksum_method_islandcore_cache_and_parse_lyrics() != 13752) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_island_bridge_checksum_method_islandcore_capture_clipboard_item() != 2466) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -2864,6 +3137,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_finish_timer_session() != 46686) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_get_cached_lyrics_snapshot() != 26711) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_get_retention_policy() != 13524) {

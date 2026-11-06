@@ -51,3 +51,12 @@ See `tasks/todo.md` for the detailed task breakdown, acceptance criteria, verifi
 | `NSPanel` stealing focus or failing in Fullscreen | High | Use `.nonactivatingPanel` style mask and `[.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]` |
 | Idle CPU exceeding `<1%` target | High | Suspend active polling while Island is collapsed; use event-driven macOS notifications |
 | Capturing sensitive passwords in Clipboard | High | Filter `ConcealedType`, `TransientType`, and `IsSecureEventInputEnabled()` before persistence |
+| Hover oscillation on `NSPanel.animator().setFrame` | High | Keep `IslandPanel` at stable `expandedFrame` canvas, use `IslandHostingView.hitTest` for click-through, and validate `NSEvent.mouseLocation` with hysteresis |
+| Spotify AppleScript permission in `.app` bundle | Medium | Include `NSAppleEventsUsageDescription` in `Info.plist` via `scripts/package-app.sh` |
+
+## 4. Phase 5 Revision Tasks (Tasks 15–18)
+- **Task 15:** Fix Notch Hover Oscillation (`NotchDetector.swift`, `IslandPanel.swift`, `HoverController.swift`, `IslandWindowController.swift`, `IslandRootView.swift`)
+- **Task 16:** Rust LRC Synced Lyrics Parser & SQLite Lyrics Cache (`migrations/0006_lyrics_cache.sql`, `crates/storage`, `crates/core/src/lyrics.rs`, `crates/bridge`)
+- **Task 17:** Full Spotify Integration & Live Synced Lyrics UI (`MediaAdapter.swift`, `MediaPlayerView.swift`, `IslandRootView.swift`)
+- **Task 18:** `.app` Bundle Packaging Script (`scripts/package-app.sh`) & SelfTest Verification (`apps/macos/Sources/SelfTest/main.swift`)
+

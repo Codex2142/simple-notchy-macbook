@@ -8,8 +8,10 @@ pub struct NowPlayingTrack {
     pub title: String,
     pub artist: String,
     pub album: String,
+    pub artwork_url: String,
     pub duration_secs: u32,
     pub elapsed_secs: u32,
+    pub elapsed_ms: u64,
     pub is_playing: bool,
 }
 
@@ -41,8 +43,10 @@ mod tests {
             title: "Midnight City".to_string(),
             artist: "M83".to_string(),
             album: "Hurry Up, We're Dreaming".to_string(),
+            artwork_url: "https://i.scdn.co/image/123".to_string(),
             duration_secs: 243,
             elapsed_secs: 10,
+            elapsed_ms: 10_000,
             is_playing: true,
         };
         assert!(t1.is_new_track_compared_to(None));

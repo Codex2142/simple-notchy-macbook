@@ -75,6 +75,56 @@ impl Storage {
             storage: self.clone(),
         }
     }
+
+    pub fn lyrics_cache_repo(&self) -> SqliteLyricsCacheRepo {
+        SqliteLyricsCacheRepo {
+            storage: self.clone(),
+        }
+    }
+}
+
+pub struct SqliteLyricsCacheRepo {
+    storage: Storage,
+}
+
+impl SqliteLyricsCacheRepo {
+    pub fn track_key(title: &str, artist: &str) -> String {
+        format!(
+            "{}::{}",
+            title.trim().to_lowercase(),
+            artist.trim().to_lowercase()
+        )
+    }
+
+    pub fn upsert_lrc(&self, title: &str, artist: &str, synced_lrc: &str) -> IslandResult<()> {
+        let key = Self::track_key(title, artist);
+        let now = unix_timestamp_secs();
+        self.storage.with_conn(|conn| {
+            conn.execute(
+                "INSERT INTO lyrics_cache (track_key, title, artist, synced_lrc, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5)
+                 ON CONFLICT(track_key) DO UPDATE SET
+                    synced_lrc = excluded.synced_lrc,
+                    updated_at = excluded.updated_at",
+                params![key, title.trim(), artist.trim(), synced_lrc, now],
+            )
+            .map_err(map_sql_err)?;
+            Ok(())
+        })
+    }
+
+    pub fn get_lrc(&self, title: &str, artist: &str) -> IslandResult<Option<String>> {
+        let key = Self::track_key(title, artist);
+        self.storage.with_conn(|conn| {
+            conn.query_row(
+                "SELECT synced_lrc FROM lyrics_cache WHERE track_key = ?1",
+                params![key],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(map_sql_err)
+        })
+    }
 }
 
 impl SqliteSettingsRepo {

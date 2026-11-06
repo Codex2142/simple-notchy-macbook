@@ -4,6 +4,7 @@
 
 # macOS & Swift / Xcode
 .DS_Store
+/build/
 .build/
 apps/macos/.build/
 apps/macos/.swiftpm/

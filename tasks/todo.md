@@ -388,3 +388,101 @@
 - [x] All Rust and Swift tests pass
 - [x] All M0–M3 vertical slices verified end-to-end
 - [x] Documentation and CI pipeline complete
+
+---
+
+## Task 15: Fix Notch Hover Oscillation & Click-Through Window (`apps/macos/Sources/Window`)
+
+**Description:** Stop `NSPanel` frame resize thrashing during hover transitions by keeping `IslandPanel` at a stable top-centered canvas (`expandedFrame`), overriding `IslandHostingView.hitTest(_:)` so clicks outside the active pill rect pass through, and adding `NSEvent.mouseLocation` hysteresis validation in `HoverController` and `IslandWindowController`.
+
+**Acceptance criteria:**
+- [x] Hovering over the notch expands once and remains stably expanded while the cursor stays anywhere inside the expanded pill area (`expandedFrame` + 12pt hysteresis).
+- [x] Spurious SwiftUI `.onHover(false)` events emitted during view layout changes are ignored when `NSEvent.mouseLocation` is still inside the active hysteresis rect.
+- [x] Clicks outside the active pill rect pass through `IslandHostingView` to underlying windows/menu bar.
+
+**Verification:**
+- [x] Tests pass: `./scripts/test-macos.sh`
+
+**Dependencies:** Task 14
+
+**Files likely touched:**
+- `apps/macos/Sources/Window/NotchDetector.swift`
+- `apps/macos/Sources/Window/IslandPanel.swift`
+- `apps/macos/Sources/Window/HoverController.swift`
+- `apps/macos/Sources/Window/IslandWindowController.swift`
+- `apps/macos/Sources/App/IslandRootView.swift`
+
+**Estimated scope:** Medium (5 files)
+
+---
+
+## Task 16: Rust LRC Synced Lyrics Engine & SQLite Cache (`crates/storage`, `crates/core`, `crates/bridge`)
+
+**Description:** Add `migrations/0006_lyrics_cache.sql`, implement `crates/core/src/lyrics.rs` to parse `.lrc` timestamped lyrics (`[mm:ss.xx]`) and compute `LyricSyncSnapshot` for any `elapsed_ms`, extend `NowPlayingTrack` with `artwork_url` and `elapsed_ms`, and expose lyrics caching/lookup over UniFFI.
+
+**Acceptance criteria:**
+- [x] `0006_lyrics_cache.sql` migrates cleanly and stores/retrieves cached LRC lyrics per `(title, artist)`.
+- [x] `parse_lrc` and `sync_lyrics(lines, elapsed_ms)` accurately compute `previous_line`, `current_line`, `next_line`, and `current_index`.
+- [x] `./scripts/build-rust-macos.sh` regenerates Swift bindings cleanly.
+
+**Verification:**
+- [x] Tests pass: `cargo test --workspace --offline && ./scripts/build-rust-macos.sh`
+
+**Dependencies:** Task 15
+
+**Files likely touched:**
+- `migrations/0006_lyrics_cache.sql`
+- `crates/storage/src/lib.rs`
+- `crates/storage/src/repositories.rs`
+- `crates/core/src/lyrics.rs`
+- `crates/core/src/media.rs`
+- `crates/core/src/lib.rs`
+- `crates/bridge/src/lib.rs`
+
+**Estimated scope:** Medium (7 files)
+
+---
+
+## Task 17: Full Spotify Integration & Live Synced Lyrics UI (`apps/macos/Sources/Integrations/MediaAdapter.swift`, `MediaPlayerView.swift`)
+
+**Description:** Upgrade `MediaAdapter` with active AppleScript Spotify synchronization (`1.0s` poll + `250ms` smooth elapsed-time tick when playing), artwork URL, interactive seek (`set player position to ...`), auto-launch Spotify on Play, and automatic synced lyrics lookup from `lrclib.net` cached in SQLite. Update `MediaPlayerView` and `IslandRootView` to show album artwork, seek bar, full playback controls, and real-time synced lyrics in both the expanded Media view and collapsed/activity notch bar.
+
+**Acceptance criteria:**
+- [x] When Spotify is playing, `MediaAdapter` syncs track title, artist, album, artwork URL, duration, and live `elapsedMs` even if Spotify started before Project Island launched.
+- [x] Play/Pause, Next, Previous, and scrubbing/clicking the progress bar control Spotify playback directly.
+- [x] Live synced lyrics highlight the current line in real time based on `elapsedMs` and show a compact live lyric preview on the notch pill.
+
+**Verification:**
+- [x] Tests pass: `./scripts/test-macos.sh`
+
+**Dependencies:** Task 16
+
+**Files likely touched:**
+- `apps/macos/Sources/Integrations/MediaAdapter.swift`
+- `apps/macos/Sources/Features/Media/MediaPlayerView.swift`
+- `apps/macos/Sources/App/IslandRootView.swift`
+
+**Estimated scope:** Medium (3 files)
+
+---
+
+## Task 18: `.app` Bundle Packaging Script & End-to-End Verification (`scripts/package-app.sh`, `SelfTest`)
+
+**Description:** Create `scripts/package-app.sh` to build `build/Project Island.app` with `NSAppleEventsUsageDescription` in `Info.plist`, add unit/integration tests for hover hysteresis and LRC synced lyrics in `apps/macos/Sources/SelfTest/main.swift`, and update `README.md` and `walkthrough.md`.
+
+**Acceptance criteria:**
+- [x] `./scripts/package-app.sh` produces a runnable `build/Project Island.app` bundle with `NSAppleEventsUsageDescription`.
+- [x] `cargo test --workspace --offline`, `cargo clippy --workspace --all-targets --offline -- -D warnings`, and `./scripts/test-macos.sh` pass 100%.
+
+**Verification:**
+- [x] Tests pass: `cargo test --workspace --offline && ./scripts/test-macos.sh && ./scripts/package-app.sh`
+
+**Dependencies:** Task 17
+
+**Files likely touched:**
+- `scripts/package-app.sh`
+- `apps/macos/Sources/SelfTest/main.swift`
+- `README.md`
+- `/Users/akbarsadat/.gemini/antigravity/brain/0abeea8a-6d04-4d43-8680-a0dc159290d1/walkthrough.md`
+
+**Estimated scope:** Medium (4 files)

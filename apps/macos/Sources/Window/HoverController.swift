@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import IslandBridge
 
 /// Coordinates debounced hover-in and hover-out transitions and vertical swipe gestures for the Island.
 @MainActor
@@ -63,6 +64,47 @@ public final class HoverController {
         hoverInTask = nil
         hoverOutTask?.cancel()
         hoverOutTask = nil
+    }
+
+    /// Evaluates a screen-space cursor location (`NSEvent.mouseLocation`) against the active geometry and mode
+    /// with separate entry and exit hysteresis bounds so the Island never oscillates when expanding or collapsing.
+    public func evaluateCursorLocation(
+        screenPoint: CGPoint,
+        geometry: NotchGeometry,
+        mode: FfiIslandMode
+    ) {
+        let entryRect: CGRect
+        switch mode {
+        case .hidden, .collapsed:
+            entryRect = geometry.collapsedFrame.insetBy(dx: -4, dy: -4)
+        case .activity:
+            entryRect = geometry.activityFrame.insetBy(dx: -4, dy: -4)
+        case .peek:
+            entryRect = geometry.peekFrame.insetBy(dx: -6, dy: -6)
+        case .expanded, .pinned:
+            entryRect = geometry.expandedFrame.insetBy(dx: -14, dy: -14)
+        }
+
+        if !isPointerInside {
+            if entryRect.contains(screenPoint) {
+                pointerEntered()
+            }
+        } else {
+            let exitRect: CGRect
+            switch mode {
+            case .expanded, .pinned:
+                exitRect = geometry.expandedFrame.insetBy(dx: -14, dy: -14)
+            case .peek:
+                exitRect = geometry.peekFrame.insetBy(dx: -10, dy: -10)
+            case .activity:
+                exitRect = geometry.activityFrame.insetBy(dx: -10, dy: -10)
+            case .collapsed, .hidden:
+                exitRect = geometry.collapsedFrame.insetBy(dx: -10, dy: -10)
+            }
+            if !exitRect.contains(screenPoint) {
+                pointerExited()
+            }
+        }
     }
 
     /// Processes scroll/swipe deltas on the Island surface.

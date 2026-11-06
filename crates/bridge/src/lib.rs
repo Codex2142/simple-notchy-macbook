@@ -5,6 +5,7 @@ use island_common::{AppConfig, IslandError, RetentionPolicy};
 use island_core::{
     clipboard::ClipboardCaptureCandidate,
     event_bus::DomainEvent,
+    lyrics::{LyricLine, LyricSyncSnapshot},
     media::NowPlayingTrack,
     state_machine::{ActiveActivity, IslandPrimaryState, IslandStateSnapshot, PeekPreview},
     system::SystemTelemetry,
@@ -197,8 +198,10 @@ pub struct FfiNowPlayingTrack {
     pub title: String,
     pub artist: String,
     pub album: String,
+    pub artwork_url: String,
     pub duration_secs: u32,
     pub elapsed_secs: u32,
+    pub elapsed_ms: u64,
     pub is_playing: bool,
 }
 
@@ -209,8 +212,10 @@ impl From<NowPlayingTrack> for FfiNowPlayingTrack {
             title: t.title,
             artist: t.artist,
             album: t.album,
+            artwork_url: t.artwork_url,
             duration_secs: t.duration_secs,
             elapsed_secs: t.elapsed_secs,
+            elapsed_ms: t.elapsed_ms,
             is_playing: t.is_playing,
         }
     }
@@ -223,9 +228,49 @@ impl From<FfiNowPlayingTrack> for NowPlayingTrack {
             title: t.title,
             artist: t.artist,
             album: t.album,
+            artwork_url: t.artwork_url,
             duration_secs: t.duration_secs,
             elapsed_secs: t.elapsed_secs,
+            elapsed_ms: t.elapsed_ms,
             is_playing: t.is_playing,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiLyricLine {
+    pub timestamp_ms: u64,
+    pub text: String,
+}
+
+impl From<LyricLine> for FfiLyricLine {
+    fn from(l: LyricLine) -> Self {
+        Self {
+            timestamp_ms: l.timestamp_ms,
+            text: l.text,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiLyricSyncSnapshot {
+    pub lines: Vec<FfiLyricLine>,
+    pub current_index: i32,
+    pub previous_line: String,
+    pub current_line: String,
+    pub next_line: String,
+    pub has_synced_lyrics: bool,
+}
+
+impl From<LyricSyncSnapshot> for FfiLyricSyncSnapshot {
+    fn from(s: LyricSyncSnapshot) -> Self {
+        Self {
+            lines: s.lines.into_iter().map(Into::into).collect(),
+            current_index: s.current_index,
+            previous_line: s.previous_line,
+            current_line: s.current_line,
+            next_line: s.next_line,
+            has_synced_lyrics: s.has_synced_lyrics,
         }
     }
 }
@@ -606,6 +651,31 @@ impl IslandCore {
 
     pub fn current_now_playing(&self) -> Result<Option<FfiNowPlayingTrack>, FfiError> {
         Ok(self.coordinator.current_now_playing()?.map(Into::into))
+    }
+
+    pub fn cache_and_parse_lyrics(
+        &self,
+        title: String,
+        artist: String,
+        lrc_content: String,
+        elapsed_ms: u64,
+    ) -> Result<FfiLyricSyncSnapshot, FfiError> {
+        Ok(self
+            .coordinator
+            .cache_and_parse_lyrics(&title, &artist, &lrc_content, elapsed_ms)?
+            .into())
+    }
+
+    pub fn get_cached_lyrics_snapshot(
+        &self,
+        title: String,
+        artist: String,
+        elapsed_ms: u64,
+    ) -> Result<Option<FfiLyricSyncSnapshot>, FfiError> {
+        Ok(self
+            .coordinator
+            .get_cached_lyrics_snapshot(&title, &artist, elapsed_ms)?
+            .map(Into::into))
     }
 
     pub fn update_system_telemetry(

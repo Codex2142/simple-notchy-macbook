@@ -25,7 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               let controller = try? IslandWindowController(core: core),
               let pasteboard = try? PasteboardMonitor(core: core),
               let keepAwake = try? KeepAwakeAdapter(core: core),
-              let media = try? MediaAdapter(core: core),
+              let media = try? MediaAdapter(core: core, enableLivePolling: true),
               let systemMetrics = try? SystemMetricsAdapter(core: core),
               let notesShelf = try? NotesShelfStore(core: core),
               let settings = try? SettingsStore(core: core)

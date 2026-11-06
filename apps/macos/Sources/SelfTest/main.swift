@@ -201,6 +201,44 @@ struct IslandSelfTest {
         media.togglePlayPause()
         check(media.nowPlaying?.isPlaying == false, "togglePlayPause toggles playing flag")
 
+        // Verify LRC live synced lyrics caching & seek synchronization
+        let sampleLrc = """
+        [00:02.00] Far away
+        [00:08.50] This ship is taking me far away
+        [00:15.00] Far away from the memories
+        """
+        let initialLyrics = try media.cacheLyrics(
+            title: "Starlight",
+            artist: "Muse",
+            lrcContent: sampleLrc,
+            elapsedMs: 3_000
+        )
+        check(initialLyrics.hasSyncedLyrics, "Expected parsed synced lyrics")
+        check(initialLyrics.currentLine == "Far away", "Expected line at 3s to be 'Far away', got '\(initialLyrics.currentLine)'")
+        check(initialLyrics.nextLine == "This ship is taking me far away", "Expected next line at 3s")
+
+        media.seek(toSeconds: 10.0)
+        check(media.nowPlaying?.elapsedSecs == 10, "Expected seek to update elapsedSecs to 10")
+        check(media.lyricsSnapshot?.currentLine == "This ship is taking me far away", "Expected live lyric at 10s to advance to second line")
+
+        // Verify hover hysteresis prevents expand/collapse oscillation
+        let hysteresisHover = HoverController(hoverInDelayMs: 10, hoverOutGraceMs: 10)
+        let notchCenterPoint = CGPoint(x: notchedGeo.collapsedFrame.midX, y: notchedGeo.collapsedFrame.midY)
+        hysteresisHover.evaluateCursorLocation(
+            screenPoint: notchCenterPoint,
+            geometry: notchedGeo,
+            mode: .collapsed
+        )
+        check(hysteresisHover.isPointerInside, "Cursor inside collapsed notch should mark pointer inside")
+        // Move cursor lower down inside expanded panel (outside collapsedFrame, inside expandedFrame)
+        let lowerExpandedPoint = CGPoint(x: notchedGeo.expandedFrame.midX, y: notchedGeo.expandedFrame.minY + 40)
+        hysteresisHover.evaluateCursorLocation(
+            screenPoint: lowerExpandedPoint,
+            geometry: notchedGeo,
+            mode: .expanded
+        )
+        check(hysteresisHover.isPointerInside, "Cursor inside expanded panel must remain inside and never oscillate")
+
         // 10. Task 12: System Telemetry & Volume/Battery HUD Peek tests
         let _ = try controllerCore.tryAutoCollapse(expectedEpoch: nil, nowMs: 5_500)
         let sysMetrics = try SystemMetricsAdapter(core: controllerCore)

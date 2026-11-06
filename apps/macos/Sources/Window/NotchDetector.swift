@@ -73,6 +73,13 @@ public struct NotchGeometry: Equatable, Sendable {
             return expandedFrame
         }
     }
+
+    /// Returns the screen-space interactive hit-test rect for a given `FfiIslandMode`, expanded by `hysteresis`.
+    public func hitTestRect(for mode: FfiIslandMode, hysteresis: CGFloat = 0) -> CGRect {
+        let base = frame(for: mode)
+        guard hysteresis != 0 else { return base }
+        return base.insetBy(dx: -hysteresis, dy: -hysteresis)
+    }
 }
 
 public enum NotchDetector {
@@ -133,7 +140,7 @@ public enum NotchDetector {
         )
 
         let expandedWidth = min(540.0, max(420.0, frame.width * 0.34))
-        let expandedHeight: CGFloat = 240.0
+        let expandedHeight: CGFloat = 270.0
         let expandedFrame = topCenteredRect(
             in: frame,
             topY: topY,

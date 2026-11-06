@@ -31,31 +31,53 @@ public struct IslandRootView: View {
 
     public var body: some View {
         ZStack(alignment: .top) {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(Color.black.opacity(0.95))
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
-                )
+            ZStack(alignment: .top) {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.black.opacity(0.95))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+                    )
 
-            contentForMode
-                .padding(.horizontal, isExpandedLike ? 16 : 10)
-                .padding(.vertical, isExpandedLike ? 12 : 6)
+                contentForMode
+                    .padding(.horizontal, isExpandedLike ? 16 : 10)
+                    .padding(.vertical, isExpandedLike ? 12 : 6)
+            }
+            .frame(width: activePillSize.width, height: activePillSize.height, alignment: .top)
+            .clipped()
+            .onHover { inside in
+                if inside {
+                    controller.handlePointerEntered()
+                } else {
+                    controller.handlePointerExited()
+                }
+            }
+            .onTapGesture {
+                if !isExpandedLike {
+                    controller.toggleExpandedOrPinned()
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .onHover { inside in
-            if inside {
-                controller.handlePointerEntered()
-            } else {
-                controller.handlePointerExited()
-            }
+        .animation(.spring(response: 0.30, dampingFraction: 0.84), value: controller.viewState.mode)
+    }
+
+    private var activePillSize: CGSize {
+        if let geometry = controller.activeGeometry {
+            return geometry.frame(for: controller.viewState.mode).size
         }
-        .onTapGesture {
-            if !isExpandedLike {
-                controller.toggleExpandedOrPinned()
-            }
+        switch controller.viewState.mode {
+        case .hidden:
+            return CGSize(width: 80, height: 2)
+        case .collapsed:
+            return CGSize(width: 208, height: 37)
+        case .activity:
+            return CGSize(width: 318, height: 37)
+        case .peek:
+            return CGSize(width: 368, height: 65)
+        case .expanded, .pinned:
+            return CGSize(width: 514, height: 270)
         }
-        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: controller.viewState.mode)
     }
 
     private var isExpandedLike: Bool {
@@ -92,14 +114,29 @@ public struct IslandRootView: View {
     }
 
     private var collapsedBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Circle()
-                .fill(Color.green.opacity(0.85))
+                .fill(mediaAdapter.nowPlaying?.isPlaying == true ? Color.green : Color.green.opacity(0.75))
                 .frame(width: 6, height: 6)
+            if let snap = mediaAdapter.lyricsSnapshot,
+               snap.hasSyncedLyrics,
+               mediaAdapter.nowPlaying?.isPlaying == true,
+               !snap.currentLine.isEmpty
+            {
+                Text(snap.currentLine)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.green)
+                    .lineLimit(1)
+            } else if let track = mediaAdapter.nowPlaying, track.isPlaying {
+                Text(track.title)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.white.opacity(0.85))
+                    .lineLimit(1)
+            }
             Spacer(minLength: 0)
-            Image(systemName: "waveform")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.75))
+            Image(systemName: mediaAdapter.nowPlaying?.isPlaying == true ? "waveform.circle.fill" : "waveform")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(mediaAdapter.nowPlaying?.isPlaying == true ? .green : .white.opacity(0.75))
         }
     }
 

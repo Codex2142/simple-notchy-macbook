@@ -2,6 +2,7 @@
 
 pub mod clipboard;
 pub mod event_bus;
+pub mod lyrics;
 pub mod media;
 pub mod state_machine;
 pub mod system;
@@ -20,6 +21,7 @@ use island_storage::{
     timer_repo::{TimerRepository, TimerSessionRecord},
     Storage,
 };
+use lyrics::{parse_lrc, sync_lyrics, LyricSyncSnapshot};
 use media::NowPlayingTrack;
 use state_machine::{ActiveActivity, IslandStateMachine, IslandStateSnapshot, PeekPreview};
 use std::sync::{Arc, Mutex};
@@ -325,6 +327,35 @@ impl AppCoordinator {
             .lock()
             .map_err(|_| IslandError::Internal("NowPlaying mutex poisoned".to_string()))?;
         Ok(guard.clone())
+    }
+
+    pub fn cache_and_parse_lyrics(
+        &self,
+        title: &str,
+        artist: &str,
+        lrc_content: &str,
+        elapsed_ms: u64,
+    ) -> IslandResult<LyricSyncSnapshot> {
+        self.storage
+            .lyrics_cache_repo()
+            .upsert_lrc(title, artist, lrc_content)?;
+        let lines = parse_lrc(lrc_content);
+        Ok(sync_lyrics(&lines, elapsed_ms))
+    }
+
+    pub fn get_cached_lyrics_snapshot(
+        &self,
+        title: &str,
+        artist: &str,
+        elapsed_ms: u64,
+    ) -> IslandResult<Option<LyricSyncSnapshot>> {
+        match self.storage.lyrics_cache_repo().get_lrc(title, artist)? {
+            Some(lrc) => {
+                let lines = parse_lrc(&lrc);
+                Ok(Some(sync_lyrics(&lines, elapsed_ms)))
+            }
+            None => Ok(None),
+        }
     }
 
     pub fn update_system_telemetry(

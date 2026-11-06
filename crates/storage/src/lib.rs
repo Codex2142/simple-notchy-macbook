@@ -15,6 +15,7 @@ const MIGRATION_0002: &str = include_str!("../../../migrations/0002_clipboard.sq
 const MIGRATION_0003: &str = include_str!("../../../migrations/0003_timers.sql");
 const MIGRATION_0004: &str = include_str!("../../../migrations/0004_media.sql");
 const MIGRATION_0005: &str = include_str!("../../../migrations/0005_notes_shelf.sql");
+const MIGRATION_0006: &str = include_str!("../../../migrations/0006_lyrics_cache.sql");
 
 struct Migration {
     version: i64,
@@ -47,6 +48,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 5,
         name: "0005_notes_shelf",
         sql: MIGRATION_0005,
+    },
+    Migration {
+        version: 6,
+        name: "0006_lyrics_cache",
+        sql: MIGRATION_0006,
     },
 ];
 

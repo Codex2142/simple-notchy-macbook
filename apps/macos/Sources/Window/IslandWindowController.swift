@@ -54,6 +54,10 @@ public final class IslandWindowController: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private var peekAutoCollapseTask: Task<Void, Never>?
+    private var cursorWatchTask: Task<Void, Never>?
+    private var localMouseMonitor: Any?
+    private var globalMouseMonitor: Any?
+    private var updateHitSizeClosure: ((CGSize) -> Void)?
 
     public init(
         core: IslandCore,
@@ -74,6 +78,8 @@ public final class IslandWindowController: ObservableObject {
     }
 
     /// Creates and displays the floating `IslandPanel` with the provided SwiftUI root view.
+    /// Keeps the `NSPanel` at a stable `expandedFrame` canvas and uses `IslandHostingView.hitTest(_:)`
+    /// for click-through outside the active pill so the window never thrashes `NSTrackingArea` on hover.
     public func attachRootView<Content: View>(_ rootView: Content) {
         let initialGeometry = activeGeometry ?? NotchDetector.calculateGeometry(
             for: ScreenMetrics(
@@ -85,18 +91,35 @@ public final class IslandWindowController: ObservableObject {
                 auxiliaryTopRightWidth: 664
             )
         )
-        let targetFrame = initialGeometry.frame(for: viewState.mode)
-        let islandPanel = IslandPanel(contentRect: targetFrame)
-        islandPanel.contentView = NSHostingView(rootView: rootView)
+        self.activeGeometry = initialGeometry
+
+        let islandPanel = IslandPanel(contentRect: initialGeometry.expandedFrame)
+        let hostingView = IslandHostingView(rootView: rootView)
+        hostingView.activeHitSize = initialGeometry.frame(for: viewState.mode).size
+        self.updateHitSizeClosure = { [weak hostingView] newSize in
+            hostingView?.activeHitSize = newSize
+        }
+        islandPanel.contentView = hostingView
         islandPanel.orderFrontRegardless()
         self.panel = islandPanel
+
+        installMouseMonitors()
     }
 
     public func handlePointerEntered() {
+        _ = try? core.setInteracting(interacting: true, nowMs: Self.nowMs())
         hoverController.pointerEntered()
     }
 
     public func handlePointerExited() {
+        // Guard against spurious SwiftUI `.onHover(false)` callbacks fired when the pill layout expands under the cursor.
+        if let geometry = activeGeometry {
+            let mouseLoc = NSEvent.mouseLocation
+            let activeExitRect = geometry.hitTestRect(for: viewState.mode, hysteresis: 14)
+            if activeExitRect.contains(mouseLoc) {
+                return
+            }
+        }
         _ = try? core.setInteracting(interacting: false, nowMs: Self.nowMs())
         hoverController.pointerExited()
     }
@@ -150,6 +173,13 @@ public final class IslandWindowController: ObservableObject {
 
         hoverController.onHoverExitCollapseRequested = { [weak self] in
             guard let self else { return }
+            if let geometry = self.activeGeometry {
+                let mouseLoc = NSEvent.mouseLocation
+                if geometry.hitTestRect(for: self.viewState.mode, hysteresis: 14).contains(mouseLoc) {
+                    return
+                }
+            }
+            _ = try? self.core.setInteracting(interacting: false, nowMs: Self.nowMs())
             let epoch = self.viewState.transitionEpoch
             _ = try? self.core.tryAutoCollapse(expectedEpoch: epoch, nowMs: Self.nowMs())
         }
@@ -198,16 +228,54 @@ public final class IslandWindowController: ObservableObject {
     }
 
     private func animatePanelToCurrentMode(geometry: NotchGeometry, mode: FfiIslandMode) {
+        let activeSize = geometry.frame(for: mode).size
+        updateHitSizeClosure?(activeSize)
+
         guard let panel else { return }
-        let targetFrame = geometry.frame(for: mode)
         panel.level = WindowLevelManager.windowLevel(for: mode)
         panel.allowKeyFocus = (mode == .expanded || mode == .pinned)
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.28
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 1.0, 0.36, 1.0)
-            panel.animator().setFrame(targetFrame, display: true)
+        if panel.frame != geometry.expandedFrame {
+            panel.setFrame(geometry.expandedFrame, display: true)
         }
+    }
+
+    private func installMouseMonitors() {
+        if localMouseMonitor == nil {
+            localMouseMonitor = NSEvent.addLocalMonitorForEvents(
+                matching: [.mouseMoved, .leftMouseDragged, .mouseEntered, .mouseExited]
+            ) { [weak self] event in
+                self?.checkMouseLocation()
+                return event
+            }
+        }
+        if globalMouseMonitor == nil {
+            globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(
+                matching: [.mouseMoved, .leftMouseDragged]
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.checkMouseLocation()
+                }
+            }
+        }
+        cursorWatchTask?.cancel()
+        cursorWatchTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 120_000_000)
+                guard !Task.isCancelled, let self else { break }
+                self.checkMouseLocation()
+            }
+        }
+    }
+
+    private func checkMouseLocation() {
+        guard let geometry = activeGeometry else { return }
+        let mouseLoc = NSEvent.mouseLocation
+        hoverController.evaluateCursorLocation(
+            screenPoint: mouseLoc,
+            geometry: geometry,
+            mode: viewState.mode
+        )
     }
 
     public static func nowMs() -> UInt64 {
