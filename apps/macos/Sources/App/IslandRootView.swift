@@ -8,10 +8,16 @@ import IslandFeatures
 public struct IslandRootView: View {
     @ObservedObject public var controller: IslandWindowController
     @ObservedObject public var pasteboardMonitor: PasteboardMonitor
+    @ObservedObject public var keepAwakeAdapter: KeepAwakeAdapter
 
-    public init(controller: IslandWindowController, pasteboardMonitor: PasteboardMonitor) {
+    public init(
+        controller: IslandWindowController,
+        pasteboardMonitor: PasteboardMonitor,
+        keepAwakeAdapter: KeepAwakeAdapter
+    ) {
         self.controller = controller
         self.pasteboardMonitor = pasteboardMonitor
+        self.keepAwakeAdapter = keepAwakeAdapter
     }
 
     public var body: some View {
@@ -167,6 +173,8 @@ public struct IslandRootView: View {
 
             if controller.selectedTab == .clipboard {
                 ClipboardTabView(monitor: pasteboardMonitor)
+            } else if controller.selectedTab == .timer {
+                TimerTabView(adapter: keepAwakeAdapter)
             } else {
                 Spacer(minLength: 0)
 

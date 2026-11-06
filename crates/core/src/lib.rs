@@ -3,6 +3,7 @@
 pub mod clipboard;
 pub mod event_bus;
 pub mod state_machine;
+pub mod timer;
 
 use clipboard::{validate_clipboard_candidate, ClipboardCaptureCandidate};
 use event_bus::{DomainEvent, EventBus};
@@ -13,10 +14,12 @@ use island_storage::{
         DisplayProfileRecord, DisplayProfileRepository, ModuleSettingRecord,
         ModuleSettingsRepository, SettingsRepository,
     },
+    timer_repo::{TimerRepository, TimerSessionRecord},
     Storage,
 };
 use state_machine::{ActiveActivity, IslandStateMachine, IslandStateSnapshot, PeekPreview};
 use std::sync::{Arc, Mutex};
+use timer::{format_duration_mm_ss, validate_timer_request};
 
 #[derive(Clone)]
 pub struct AppCoordinator {
@@ -234,6 +237,48 @@ impl AppCoordinator {
         self.storage
             .clipboard_repo()
             .prune_expired(retention.clipboard_days, now_secs)
+    }
+
+    pub fn start_timer_session(
+        &self,
+        kind: &str,
+        label: &str,
+        duration_secs: u32,
+        now_secs: i64,
+    ) -> IslandResult<TimerSessionRecord> {
+        validate_timer_request(kind, label, duration_secs)?;
+        let record = self
+            .storage
+            .timer_repo()
+            .create_session(kind, label, duration_secs, now_secs)?;
+        let _ = self.start_activity(
+            ActiveActivity {
+                id: format!("timer-{}", record.id),
+                kind: kind.to_string(),
+                title: format_duration_mm_ss(duration_secs),
+                subtitle: label.to_string(),
+            },
+            (now_secs as u64).saturating_mul(1000),
+        )?;
+        Ok(record)
+    }
+
+    pub fn finish_timer_session(
+        &self,
+        session_id: i64,
+        status: &str,
+        now_secs: i64,
+    ) -> IslandResult<TimerSessionRecord> {
+        let updated = self
+            .storage
+            .timer_repo()
+            .finish_session(session_id, status, now_secs)?;
+        let _ = self.clear_activity((now_secs as u64).saturating_mul(1000))?;
+        Ok(updated)
+    }
+
+    pub fn list_timer_sessions(&self, limit: usize) -> IslandResult<Vec<TimerSessionRecord>> {
+        self.storage.timer_repo().list_recent(limit)
     }
 
     fn lock_sm(&self) -> IslandResult<std::sync::MutexGuard<'_, IslandStateMachine>> {

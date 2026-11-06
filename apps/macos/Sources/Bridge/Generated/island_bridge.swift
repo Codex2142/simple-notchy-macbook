@@ -545,6 +545,8 @@ public protocol IslandCoreProtocol : AnyObject {
     
     func expand(nowMs: UInt64) throws  -> FfiIslandViewState
     
+    func finishTimerSession(sessionId: Int64, status: String, nowSecs: Int64) throws  -> FfiTimerSession
+    
     func getRetentionPolicy() throws  -> FfiRetentionPolicy
     
     func listClipboardItems(query: String?, limit: UInt32) throws  -> [FfiClipboardItem]
@@ -552,6 +554,8 @@ public protocol IslandCoreProtocol : AnyObject {
     func listDisplayProfiles() throws  -> [FfiDisplayProfile]
     
     func listModules() throws  -> [FfiModuleSetting]
+    
+    func listTimerSessions(limit: UInt32) throws  -> [FfiTimerSession]
     
     func pin(nowMs: UInt64) throws  -> FfiIslandViewState
     
@@ -570,6 +574,8 @@ public protocol IslandCoreProtocol : AnyObject {
     func setRetentionPolicy(policy: FfiRetentionPolicy) throws 
     
     func startActivity(activity: FfiActivityInfo, nowMs: UInt64) throws  -> FfiIslandViewState
+    
+    func startTimerSession(kind: String, label: String, durationSecs: UInt32, nowSecs: Int64) throws  -> FfiTimerSession
     
     func tryAutoCollapse(expectedEpoch: UInt64?, nowMs: UInt64) throws  -> FfiIslandViewState
     
@@ -697,6 +703,16 @@ open func expand(nowMs: UInt64)throws  -> FfiIslandViewState {
 })
 }
     
+open func finishTimerSession(sessionId: Int64, status: String, nowSecs: Int64)throws  -> FfiTimerSession {
+    return try  FfiConverterTypeFfiTimerSession.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_finish_timer_session(self.uniffiClonePointer(),
+        FfiConverterInt64.lower(sessionId),
+        FfiConverterString.lower(status),
+        FfiConverterInt64.lower(nowSecs),$0
+    )
+})
+}
+    
 open func getRetentionPolicy()throws  -> FfiRetentionPolicy {
     return try  FfiConverterTypeFfiRetentionPolicy.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_get_retention_policy(self.uniffiClonePointer(),$0
@@ -723,6 +739,14 @@ open func listDisplayProfiles()throws  -> [FfiDisplayProfile] {
 open func listModules()throws  -> [FfiModuleSetting] {
     return try  FfiConverterSequenceTypeFfiModuleSetting.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_list_modules(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+open func listTimerSessions(limit: UInt32)throws  -> [FfiTimerSession] {
+    return try  FfiConverterSequenceTypeFfiTimerSession.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_list_timer_sessions(self.uniffiClonePointer(),
+        FfiConverterUInt32.lower(limit),$0
     )
 })
 }
@@ -798,6 +822,17 @@ open func startActivity(activity: FfiActivityInfo, nowMs: UInt64)throws  -> FfiI
     uniffi_island_bridge_fn_method_islandcore_start_activity(self.uniffiClonePointer(),
         FfiConverterTypeFfiActivityInfo.lower(activity),
         FfiConverterUInt64.lower(nowMs),$0
+    )
+})
+}
+    
+open func startTimerSession(kind: String, label: String, durationSecs: UInt32, nowSecs: Int64)throws  -> FfiTimerSession {
+    return try  FfiConverterTypeFfiTimerSession.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_start_timer_session(self.uniffiClonePointer(),
+        FfiConverterString.lower(kind),
+        FfiConverterString.lower(label),
+        FfiConverterUInt32.lower(durationSecs),
+        FfiConverterInt64.lower(nowSecs),$0
     )
 })
 }
@@ -1578,6 +1613,112 @@ public func FfiConverterTypeFfiRetentionPolicy_lower(_ value: FfiRetentionPolicy
 }
 
 
+public struct FfiTimerSession {
+    public var id: Int64
+    public var kind: String
+    public var label: String
+    public var durationSecs: UInt32
+    public var startedAt: Int64
+    public var completedAt: Int64?
+    public var status: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: Int64, kind: String, label: String, durationSecs: UInt32, startedAt: Int64, completedAt: Int64?, status: String) {
+        self.id = id
+        self.kind = kind
+        self.label = label
+        self.durationSecs = durationSecs
+        self.startedAt = startedAt
+        self.completedAt = completedAt
+        self.status = status
+    }
+}
+
+
+
+extension FfiTimerSession: Equatable, Hashable {
+    public static func ==(lhs: FfiTimerSession, rhs: FfiTimerSession) -> Bool {
+        if lhs.id != rhs.id {
+            return false
+        }
+        if lhs.kind != rhs.kind {
+            return false
+        }
+        if lhs.label != rhs.label {
+            return false
+        }
+        if lhs.durationSecs != rhs.durationSecs {
+            return false
+        }
+        if lhs.startedAt != rhs.startedAt {
+            return false
+        }
+        if lhs.completedAt != rhs.completedAt {
+            return false
+        }
+        if lhs.status != rhs.status {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(kind)
+        hasher.combine(label)
+        hasher.combine(durationSecs)
+        hasher.combine(startedAt)
+        hasher.combine(completedAt)
+        hasher.combine(status)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiTimerSession: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiTimerSession {
+        return
+            try FfiTimerSession(
+                id: FfiConverterInt64.read(from: &buf), 
+                kind: FfiConverterString.read(from: &buf), 
+                label: FfiConverterString.read(from: &buf), 
+                durationSecs: FfiConverterUInt32.read(from: &buf), 
+                startedAt: FfiConverterInt64.read(from: &buf), 
+                completedAt: FfiConverterOptionInt64.read(from: &buf), 
+                status: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiTimerSession, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.id, into: &buf)
+        FfiConverterString.write(value.kind, into: &buf)
+        FfiConverterString.write(value.label, into: &buf)
+        FfiConverterUInt32.write(value.durationSecs, into: &buf)
+        FfiConverterInt64.write(value.startedAt, into: &buf)
+        FfiConverterOptionInt64.write(value.completedAt, into: &buf)
+        FfiConverterString.write(value.status, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiTimerSession_lift(_ buf: RustBuffer) throws -> FfiTimerSession {
+    return try FfiConverterTypeFfiTimerSession.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiTimerSession_lower(_ value: FfiTimerSession) -> RustBuffer {
+    return FfiConverterTypeFfiTimerSession.lower(value)
+}
+
+
 public enum FfiError {
 
     
@@ -1896,6 +2037,30 @@ fileprivate struct FfiConverterOptionUInt64: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionInt64: FfiConverterRustBuffer {
+    typealias SwiftType = Int64?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterInt64.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterInt64.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
     typealias SwiftType = String?
 
@@ -2065,6 +2230,31 @@ fileprivate struct FfiConverterSequenceTypeFfiModuleSetting: FfiConverterRustBuf
     }
 }
 
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFfiTimerSession: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiTimerSession]
+
+    public static func write(_ value: [FfiTimerSession], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiTimerSession.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiTimerSession] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiTimerSession]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiTimerSession.read(from: &buf))
+        }
+        return seq
+    }
+}
+
 private enum InitializationResult {
     case ok
     case contractVersionMismatch
@@ -2098,6 +2288,9 @@ private var initializationResult: InitializationResult = {
     if (uniffi_island_bridge_checksum_method_islandcore_expand() != 29740) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_island_bridge_checksum_method_islandcore_finish_timer_session() != 46686) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_island_bridge_checksum_method_islandcore_get_retention_policy() != 13524) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -2108,6 +2301,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_list_modules() != 169) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_list_timer_sessions() != 17402) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_pin() != 3747) {
@@ -2135,6 +2331,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_start_activity() != 5622) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_start_timer_session() != 9871) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_try_auto_collapse() != 11237) {

@@ -36,7 +36,7 @@ See `tasks/todo.md` for the detailed task breakdown, acceptance criteria, verifi
 - [x] Task 8: Vertical Slice — Clipboard Manager Backend
 - [x] Task 9: Vertical Slice — macOS Pasteboard Monitor & Island Clipboard UI
 - [x] Checkpoint 3: Settings + Clipboard End-to-End
-- [ ] Task 10: Vertical Slice — Timer, Pomodoro & Keep Awake
+- [x] Task 10: Vertical Slice — Timer, Pomodoro & Keep Awake
 - [ ] Task 11: Vertical Slice — Media Now Playing & Playback Controls
 - [ ] Task 12: Vertical Slice — System Monitoring & Battery/Volume HUDs
 - [ ] Task 13: Vertical Slice — Quick Notes & Drag-to-Notch File Shelf

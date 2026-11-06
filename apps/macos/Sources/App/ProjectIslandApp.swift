@@ -9,6 +9,7 @@ import IslandFeatures
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowController: IslandWindowController?
     private var pasteboardMonitor: PasteboardMonitor?
+    private var keepAwakeAdapter: KeepAwakeAdapter?
     private var settingsStore: SettingsStore?
     private var settingsWindow: NSWindow?
     private var statusItem: NSStatusItem?
@@ -20,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let core = try? IslandCore(databasePath: dbPath),
               let controller = try? IslandWindowController(core: core),
               let pasteboard = try? PasteboardMonitor(core: core),
+              let keepAwake = try? KeepAwakeAdapter(core: core),
               let settings = try? SettingsStore(core: core)
         else {
             fputs("Failed to initialize IslandCore\n", stderr)
@@ -27,10 +29,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         pasteboard.startMonitoring()
-        let rootView = IslandRootView(controller: controller, pasteboardMonitor: pasteboard)
+        let rootView = IslandRootView(
+            controller: controller,
+            pasteboardMonitor: pasteboard,
+            keepAwakeAdapter: keepAwake
+        )
         controller.attachRootView(rootView)
         self.windowController = controller
         self.pasteboardMonitor = pasteboard
+        self.keepAwakeAdapter = keepAwake
         self.settingsStore = settings
         setupMenuBarExtra()
     }

@@ -162,6 +162,26 @@ struct IslandSelfTest {
         try pasteboard.deleteItem(captured)
         check(pasteboard.items.isEmpty, "Deleted clipboard item")
 
-        print("==> PASS: All Swift + UniFFI + Window Engine + Settings + Clipboard tests succeeded!")
+        // 8. Task 10: Timer, Pomodoro & KeepAwake Live Activity tests
+        let keepAwake = try KeepAwakeAdapter(core: controllerCore)
+        let session = try keepAwake.startSession(
+            kind: "pomodoro",
+            label: "Deep Work",
+            durationSecs: 1500,
+            enableKeepAwake: true
+        )
+        check(session.kind == "pomodoro", "Started pomodoro session")
+        check(keepAwake.isAwakeActive, "IOPMAssertion Keep Awake should be active")
+        let activityState = try controllerCore.currentState()
+        check(activityState.mode == .activity, "Starting Pomodoro transitions Island to .activity mode")
+        check(activityState.activeActivity?.title == "25:00", "Activity title formatted as 25:00")
+
+        keepAwake.stopActiveSession(status: "completed")
+        check(!keepAwake.isAwakeActive, "IOPMAssertion released after stopping session")
+        check(keepAwake.recentSessions.first?.status == "completed", "Session recorded as completed in SQLite")
+        let postTimerState = try controllerCore.currentState()
+        check(postTimerState.mode == .collapsed, "Stopping session returns Island to .collapsed")
+
+        print("==> PASS: All Swift + UniFFI + Window Engine + Settings + Clipboard + Timer/KeepAwake tests succeeded!")
     }
 }

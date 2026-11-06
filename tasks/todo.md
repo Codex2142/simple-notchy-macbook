@@ -271,12 +271,12 @@
 **Description:** Add `migrations/0003_timers.sql` (`timer_sessions`, `focus_sessions`), implement timer/Pomodoro/stopwatch state & session persistence in Rust, `KeepAwakeAdapter` (`IOPMAssertionCreateWithName`) in Swift, and the Live Activity timer pill in Collapsed/Activity Island states.
 
 **Acceptance criteria:**
-- [ ] Starting a Countdown or Pomodoro transitions the Island to `Activity` state showing a live countdown pill.
-- [ ] Enabling Keep Awake creates a valid macOS `IOPMAssertion` and releases it cleanly on stop.
-- [ ] Completed sessions are recorded in `timer_sessions`.
+- [x] Starting a Countdown or Pomodoro transitions the Island to `Activity` state showing a live countdown pill.
+- [x] Enabling Keep Awake creates a valid macOS `IOPMAssertion` and releases it cleanly on stop.
+- [x] Completed sessions are recorded in `timer_sessions`.
 
 **Verification:**
-- [ ] Tests pass: `cargo test --workspace && swift test --package-path apps/macos`
+- [x] Tests pass: `cargo test --workspace && ./scripts/test-macos.sh`
 
 **Dependencies:** Task 9
 

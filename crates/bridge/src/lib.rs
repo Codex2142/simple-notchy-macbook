@@ -11,6 +11,7 @@ use island_core::{
 use island_storage::{
     clipboard_repo::ClipboardItemRecord,
     repositories::{DisplayProfileRecord, ModuleSettingRecord},
+    timer_repo::TimerSessionRecord,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -174,6 +175,31 @@ pub struct FfiClipboardCaptureInput {
     pub source_app: String,
     pub pasteboard_types: Vec<String>,
     pub is_secure_input_active: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiTimerSession {
+    pub id: i64,
+    pub kind: String,
+    pub label: String,
+    pub duration_secs: u32,
+    pub started_at: i64,
+    pub completed_at: Option<i64>,
+    pub status: String,
+}
+
+impl From<TimerSessionRecord> for FfiTimerSession {
+    fn from(r: TimerSessionRecord) -> Self {
+        Self {
+            id: r.id,
+            kind: r.kind,
+            label: r.label,
+            duration_secs: r.duration_secs,
+            started_at: r.started_at,
+            completed_at: r.completed_at,
+            status: r.status,
+        }
+    }
 }
 
 impl From<RetentionPolicy> for FfiRetentionPolicy {
@@ -416,6 +442,36 @@ impl IslandCore {
     pub fn delete_clipboard_item(&self, item_id: i64) -> Result<(), FfiError> {
         self.coordinator.delete_clipboard_item(item_id)?;
         Ok(())
+    }
+
+    pub fn start_timer_session(
+        &self,
+        kind: String,
+        label: String,
+        duration_secs: u32,
+        now_secs: i64,
+    ) -> Result<FfiTimerSession, FfiError> {
+        Ok(self
+            .coordinator
+            .start_timer_session(&kind, &label, duration_secs, now_secs)?
+            .into())
+    }
+
+    pub fn finish_timer_session(
+        &self,
+        session_id: i64,
+        status: String,
+        now_secs: i64,
+    ) -> Result<FfiTimerSession, FfiError> {
+        Ok(self
+            .coordinator
+            .finish_timer_session(session_id, &status, now_secs)?
+            .into())
+    }
+
+    pub fn list_timer_sessions(&self, limit: u32) -> Result<Vec<FfiTimerSession>, FfiError> {
+        let items = self.coordinator.list_timer_sessions(limit as usize)?;
+        Ok(items.into_iter().map(Into::into).collect())
     }
 }
 
