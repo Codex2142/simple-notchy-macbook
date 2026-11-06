@@ -52,80 +52,90 @@ public struct TimerTabView: View {
                 Spacer()
             }
 
-            // Custom HH:MM:SS Stepper Input Card
-            HStack(spacing: 10) {
-                Text("Custom:")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.75))
-
+            // Modern Native macOS Timer Duration Selector
+            HStack(spacing: 16) {
                 HStack(spacing: 6) {
-                    timeStepperBlock(
-                        title: "HOURS",
+                    modernTimeUnitSelector(
+                        title: "hours",
                         value: adapter.customHours,
-                        onDecrement: { adapter.decrementHours() },
                         onIncrement: { adapter.incrementHours(max: 23) },
-                        canDecrement: isStepperEnabled && adapter.customHours > 0,
-                        canIncrement: isStepperEnabled && adapter.customHours < 23
+                        onDecrement: { adapter.decrementHours() },
+                        canIncrement: isStepperEnabled && adapter.customHours < 23,
+                        canDecrement: isStepperEnabled && adapter.customHours > 0
                     )
 
                     Text(":")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.4))
-                        .padding(.bottom, 12)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.35))
+                        .padding(.bottom, 16)
 
-                    timeStepperBlock(
-                        title: "MINUTES",
+                    modernTimeUnitSelector(
+                        title: "min",
                         value: adapter.customMinutes,
-                        onDecrement: { adapter.decrementMinutes() },
                         onIncrement: { adapter.incrementMinutes() },
-                        canDecrement: isStepperEnabled && adapter.customMinutes > 0,
-                        canIncrement: isStepperEnabled && adapter.customMinutes < 59
+                        onDecrement: { adapter.decrementMinutes() },
+                        canIncrement: isStepperEnabled && adapter.customMinutes < 59,
+                        canDecrement: isStepperEnabled && adapter.customMinutes > 0
                     )
 
                     Text(":")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.4))
-                        .padding(.bottom, 12)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.35))
+                        .padding(.bottom, 16)
 
-                    timeStepperBlock(
-                        title: "SECONDS",
+                    modernTimeUnitSelector(
+                        title: "sec",
                         value: adapter.customSeconds,
-                        onDecrement: { adapter.decrementSeconds() },
                         onIncrement: { adapter.incrementSeconds() },
-                        canDecrement: isStepperEnabled && adapter.customSeconds > 0,
-                        canIncrement: isStepperEnabled && adapter.customSeconds < 59
+                        onDecrement: { adapter.decrementSeconds() },
+                        canIncrement: isStepperEnabled && adapter.customSeconds < 59,
+                        canDecrement: isStepperEnabled && adapter.customSeconds > 0
                     )
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.white.opacity(0.06))
+                )
 
-                Spacer()
-
-                // Start button for custom input (enabled only if duration > 0 and not running)
-                Button {
-                    adapter.startCustomTimer(
-                        hours: adapter.customHours,
-                        minutes: adapter.customMinutes,
-                        seconds: adapter.customSeconds,
-                        enableKeepAwake: false
-                    )
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 10))
-                        Text("Start")
-                            .font(.system(size: 11, weight: .semibold))
+                VStack(alignment: .leading, spacing: 4) {
+                    Button {
+                        adapter.startCustomTimer(
+                            hours: adapter.customHours,
+                            minutes: adapter.customMinutes,
+                            seconds: adapter.customSeconds,
+                            enableKeepAwake: false
+                        )
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 11))
+                            Text("Start Timer")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule().fill(canStartCustomTimer ? Color.green : Color.white.opacity(0.1))
+                        )
+                        .foregroundColor(canStartCustomTimer ? .black : .white.opacity(0.35))
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        Capsule().fill(canStartCustomTimer ? Color.green : Color.gray.opacity(0.3))
-                    )
-                    .foregroundColor(canStartCustomTimer ? .black : .white.opacity(0.4))
+                    .buttonStyle(.plain)
+                    .disabled(!canStartCustomTimer)
+
+                    if !canStartCustomTimer && isStepperEnabled {
+                        Text("Set > 00:00:00")
+                            .font(.system(size: 9.5))
+                            .foregroundColor(.white.opacity(0.4))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
                 }
-                .buttonStyle(.plain)
-                .disabled(!canStartCustomTimer)
+                .frame(maxWidth: 120)
+
+                Spacer(minLength: 0)
             }
-            .padding(8)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.05)))
 
             // Active or Recent Session Status & Controls (Pause, Resume, Reset)
             if adapter.timerState != .idle {
@@ -249,52 +259,56 @@ public struct TimerTabView: View {
         }
     }
 
-    private func timeStepperBlock(
+    private func modernTimeUnitSelector(
         title: String,
         value: Int,
-        onDecrement: @escaping () -> Void,
         onIncrement: @escaping () -> Void,
-        canDecrement: Bool,
-        canIncrement: Bool
+        onDecrement: @escaping () -> Void,
+        canIncrement: Bool,
+        canDecrement: Bool
     ) -> some View {
         VStack(spacing: 3) {
-            HStack(spacing: 5) {
-                Button {
-                    onDecrement()
-                } label: {
-                    Image(systemName: "minus")
-                        .font(.system(size: 9, weight: .bold))
-                        .frame(width: 18, height: 18)
-                        .background(Circle().fill(canDecrement ? Color.white.opacity(0.14) : Color.white.opacity(0.04)))
-                        .foregroundColor(canDecrement ? .white : .white.opacity(0.2))
-                }
-                .buttonStyle(.plain)
-                .disabled(!canDecrement)
-
-                Text(String(format: "%02d", value))
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
-                    .frame(width: 24, alignment: .center)
-
-                Button {
-                    onIncrement()
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 9, weight: .bold))
-                        .frame(width: 18, height: 18)
-                        .background(Circle().fill(canIncrement ? Color.white.opacity(0.14) : Color.white.opacity(0.04)))
-                        .foregroundColor(canIncrement ? .white : .white.opacity(0.2))
-                }
-                .buttonStyle(.plain)
-                .disabled(!canIncrement)
+            Button {
+                onIncrement()
+            } label: {
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 9.5, weight: .bold))
+                    .frame(width: 30, height: 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(canIncrement ? Color.white.opacity(0.12) : Color.clear)
+                    )
+                    .foregroundColor(canIncrement ? .white.opacity(0.85) : .white.opacity(0.18))
+                    .contentShape(Rectangle())
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.07)))
+            .buttonStyle(.plain)
+            .disabled(!canIncrement)
+
+            Text(String(format: "%02d", value))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .frame(width: 32, height: 24)
+
+            Button {
+                onDecrement()
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9.5, weight: .bold))
+                    .frame(width: 30, height: 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(canDecrement ? Color.white.opacity(0.12) : Color.clear)
+                    )
+                    .foregroundColor(canDecrement ? .white.opacity(0.85) : .white.opacity(0.18))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!canDecrement)
 
             Text(title)
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
+                .font(.system(size: 9, weight: .medium))
+                .foregroundColor(.white.opacity(0.45))
+                .textCase(.uppercase)
         }
     }
 }

@@ -13,6 +13,7 @@ public struct IslandRootView: View {
     @ObservedObject public var mediaAdapter: MediaAdapter
     @ObservedObject public var systemMetricsAdapter: SystemMetricsAdapter
     @ObservedObject public var notesShelfStore: NotesShelfStore
+    @ObservedObject public var settingsStore: SettingsStore
 
     public init(
         controller: IslandWindowController,
@@ -20,7 +21,8 @@ public struct IslandRootView: View {
         keepAwakeAdapter: KeepAwakeAdapter,
         mediaAdapter: MediaAdapter,
         systemMetricsAdapter: SystemMetricsAdapter,
-        notesShelfStore: NotesShelfStore
+        notesShelfStore: NotesShelfStore,
+        settingsStore: SettingsStore
     ) {
         self.controller = controller
         self.pasteboardMonitor = pasteboardMonitor
@@ -28,6 +30,7 @@ public struct IslandRootView: View {
         self.mediaAdapter = mediaAdapter
         self.systemMetricsAdapter = systemMetricsAdapter
         self.notesShelfStore = notesShelfStore
+        self.settingsStore = settingsStore
     }
 
     public var body: some View {
@@ -55,7 +58,7 @@ public struct IslandRootView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .ignoresSafeArea()
+        .ignoresSafeArea(.all, edges: .all)
         .animation(.spring(response: 0.30, dampingFraction: 0.84), value: controller.viewState.mode)
     }
 
@@ -65,18 +68,19 @@ public struct IslandRootView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle()
-                        .fill(Color.white.opacity(0.12))
-                        .frame(height: 2.2)
+                        .fill(Color.white.opacity(0.14))
+                        .frame(height: 2.5)
 
                     Rectangle()
                         .fill(
                             keepAwakeAdapter.timerState == .completed ? Color.green :
                             (keepAwakeAdapter.timerState == .paused ? Color.orange : Color.cyan)
                         )
-                        .frame(width: max(0, geo.size.width * CGFloat(keepAwakeAdapter.timerProgress)), height: 2.2)
+                        .frame(width: max(0, geo.size.width * CGFloat(keepAwakeAdapter.timerProgress)), height: 2.5)
+                        .animation(.linear(duration: 0.10), value: keepAwakeAdapter.timerProgress)
                 }
             }
-            .frame(height: 2.2)
+            .frame(height: 2.5)
         }
     }
 
@@ -92,6 +96,19 @@ public struct IslandRootView: View {
         controller.activeGeometry?.hasHardwareNotch ?? true
     }
 
+    /// Visible tabs respecting user's Settings module visibility toggles.
+    public var visibleTabs: [IslandTab] {
+        IslandTab.allCases.filter { settingsStore.isModuleEnabled($0.moduleId) }
+    }
+
+    /// Automatically active tab falling back to the first visible tab if selectedTab was disabled in Settings.
+    private var activeTab: IslandTab {
+        if visibleTabs.contains(controller.selectedTab) {
+            return controller.selectedTab
+        }
+        return visibleTabs.first ?? .home
+    }
+
     /// Dynamic height of the physical camera housing on notched MacBooks (e.g., MacBook Air M2), or 0 on external monitors.
     private var notchSafeTopInset: CGFloat {
         controller.activeGeometry?.notchSafeTopInset ?? 37.0
@@ -104,12 +121,6 @@ public struct IslandRootView: View {
     }
 
     private var activePillSize: CGSize {
-        if isTimerActive && !isExpandedLike {
-            if let geometry = controller.activeGeometry {
-                return geometry.frame(for: .collapsed).size
-            }
-            return CGSize(width: 296, height: 37)
-        }
         if let geometry = controller.activeGeometry {
             return geometry.frame(for: controller.viewState.mode).size
         }
@@ -117,7 +128,7 @@ public struct IslandRootView: View {
         case .hidden:
             return CGSize(width: 80, height: 2)
         case .collapsed:
-            return CGSize(width: 296, height: 37)
+            return CGSize(width: hasHardwareNotch ? 304 : 210, height: hasHardwareNotch ? 38 : 34)
         case .activity:
             return CGSize(width: 426, height: 38)
         case .peek:
@@ -128,18 +139,15 @@ public struct IslandRootView: View {
     }
 
     private var cornerRadius: CGFloat {
-        if isTimerActive && !isExpandedLike {
-            return 18
-        }
         switch controller.viewState.mode {
         case .hidden:
             return 2
         case .collapsed, .activity:
-            return 18
+            return hasHardwareNotch ? 14 : 17
         case .peek:
-            return 22
+            return 20
         case .expanded, .pinned:
-            return 26
+            return 24
         }
     }
 
@@ -149,26 +157,11 @@ public struct IslandRootView: View {
         case .hidden:
             EmptyView()
         case .collapsed, .activity:
-            if isTimerActive {
-                Color.clear
-                    .frame(width: activePillSize.width, height: activePillSize.height)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        controller.toggleExpandedOrPinned()
-                    }
-            } else if controller.viewState.mode == .activity {
-                activityBar
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        controller.toggleExpandedOrPinned()
-                    }
-            } else {
-                collapsedBar
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        controller.toggleExpandedOrPinned()
-                    }
-            }
+            collapsedBar
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    controller.toggleExpandedOrPinned()
+                }
         case .peek:
             peekBar
                 .contentShape(Rectangle())
@@ -182,50 +175,70 @@ public struct IslandRootView: View {
 
     // MARK: - Collapsed Island (Circular Spotify Artwork + Progressive Border outside Hardware Notch)
 
-    @ViewBuilder
     private var collapsedBar: some View {
-        if isTimerActive {
-            // When timer is active: prioritize timer by hiding Spotify information completely.
-            // Only the bottom timer progress bar is displayed on the notch.
-            Color.clear
-                .frame(width: activePillSize.width, height: activePillSize.height)
-        } else {
-            let wingWidth = controller.activeGeometry?.wingWidth(for: .collapsed) ?? 56.0
-            HStack(spacing: 0) {
-                // Left Wing (completely to the left of the physical MacBook Air M2 notch)
-                HStack(spacing: 6) {
+        let wingWidth = controller.activeGeometry?.wingWidth(for: .collapsed) ?? 60.0
+        return HStack(spacing: 0) {
+            // Left Wing (completely to the left of the physical MacBook notch)
+            HStack(spacing: 6) {
+                if mediaAdapter.nowPlaying != nil {
+                    // Spotify track present: show mini album artwork with progressive playback ring
                     collapsedCircularArtworkWithProgress
-                    Spacer(minLength: 0)
-                }
-                .padding(.leading, 10)
-                .frame(width: wingWidth, height: activePillSize.height, alignment: .leading)
-
-                // Center Hardware Notch Cutout Clearance
-                if hasHardwareNotch {
-                    Spacer(minLength: 0)
-                        .frame(width: notchCutoutWidth)
-                } else if let track = mediaAdapter.nowPlaying, track.isPlaying {
-                    Text(track.title)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.9))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
+                } else if isTimerActive {
+                    // No music playing, but timer is active: show sleek timer glyph
+                    Image(systemName: "timer")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(keepAwakeAdapter.timerState == .paused ? .orange : .cyan)
                 } else {
-                    Spacer(minLength: 0)
+                    fallbackCollapsedDisc(isPlaying: false)
                 }
+                Spacer(minLength: 0)
+            }
+            .padding(.leading, 10)
+            .frame(width: wingWidth, height: activePillSize.height, alignment: .leading)
 
-                // Right Wing (completely to the right of the physical MacBook Air M2 notch)
-                HStack(spacing: 4) {
-                    Spacer(minLength: 0)
+            // Center Hardware Notch Cutout Clearance
+            if hasHardwareNotch {
+                Spacer(minLength: 0)
+                    .frame(width: notchCutoutWidth)
+            } else if isTimerActive {
+                Text(keepAwakeAdapter.timerState == .completed ? "Finished" : (keepAwakeAdapter.timerState == .paused ? "Paused" : keepAwakeAdapter.formatHhMmSs(keepAwakeAdapter.remainingSeconds)))
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(keepAwakeAdapter.timerState == .completed ? .green : (keepAwakeAdapter.timerState == .paused ? .orange : .cyan))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+            } else if let track = mediaAdapter.nowPlaying, track.isPlaying {
+                Text(track.title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.9))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+            } else {
+                Spacer(minLength: 0)
+            }
+
+            // Right Wing (completely to the right of the physical MacBook notch)
+            HStack(spacing: 4) {
+                Spacer(minLength: 0)
+                if isTimerActive {
+                    if keepAwakeAdapter.timerState == .completed {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.green)
+                    } else {
+                        Text(keepAwakeAdapter.formatHhMmSs(keepAwakeAdapter.remainingSeconds))
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(keepAwakeAdapter.timerState == .paused ? .orange : .white)
+                    }
+                } else {
                     Image(systemName: mediaAdapter.nowPlaying?.isPlaying == true ? "waveform.circle.fill" : "waveform")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(mediaAdapter.nowPlaying?.isPlaying == true ? .green : .white.opacity(0.75))
                 }
-                .padding(.trailing, 10)
-                .frame(width: wingWidth, height: activePillSize.height, alignment: .trailing)
             }
-            .frame(width: activePillSize.width, height: activePillSize.height)
+            .padding(.trailing, 10)
+            .frame(width: wingWidth, height: activePillSize.height, alignment: .trailing)
         }
+        .frame(width: activePillSize.width, height: activePillSize.height)
     }
 
     /// Circular Spotify album artwork thumbnail surrounded by a smooth progressive circular playback border.
@@ -417,70 +430,97 @@ public struct IslandRootView: View {
             }
 
             // Full Interactive Tab Bar — always positioned below the physical notch cutout!
-            HStack(spacing: 6) {
-                ForEach(IslandTab.allCases) { tab in
-                    Button {
-                        controller.selectedTab = tab
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: tab.symbolName)
-                                .font(.system(size: 11, weight: .semibold))
-                            Text(tab.rawValue)
-                                .font(.system(size: 11.5, weight: .semibold))
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: true)
-                        }
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
-                        .background(
-                            Capsule()
-                                .fill(controller.selectedTab == tab ? Color.white.opacity(0.20) : Color.white.opacity(0.05))
-                        )
-                        .foregroundColor(controller.selectedTab == tab ? .white : .white.opacity(0.72))
-                        .contentShape(Capsule())
+            if visibleTabs.isEmpty {
+                VStack(spacing: 8) {
+                    Spacer(minLength: 0)
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 26))
+                        .foregroundColor(.white.opacity(0.35))
+                    Text("All menus are disabled")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                    Text("Open Project Island Settings to re-enable feature menus.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.55))
+                    Button("Open Settings...") {
+                        NSApp.sendAction(Selector(("openSettings:")), to: nil, from: nil)
                     }
                     .buttonStyle(.plain)
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(Color.accentColor.opacity(0.25)))
+                    .foregroundColor(.white)
+                    .padding(.top, 4)
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                HStack(spacing: 6) {
+                    ForEach(visibleTabs) { tab in
+                        Button {
+                            controller.selectedTab = tab
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: tab.symbolName)
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text(tab.rawValue)
+                                    .font(.system(size: 11.5, weight: .semibold))
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: true)
+                            }
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule()
+                                    .fill(activeTab == tab ? Color.white.opacity(0.20) : Color.white.opacity(0.05))
+                            )
+                            .foregroundColor(activeTab == tab ? .white : .white.opacity(0.72))
+                            .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
 
-                if !hasHardwareNotch {
-                    pinButton
+                    if !hasHardwareNotch {
+                        pinButton
+                    }
                 }
-            }
-            .padding(.top, hasHardwareNotch ? 2 : 6)
+                .padding(.top, hasHardwareNotch ? 2 : 6)
 
-            Divider()
-                .background(Color.white.opacity(0.12))
+                Divider()
+                    .background(Color.white.opacity(0.12))
 
-            // Active Tab Content
-            Group {
-                switch controller.selectedTab {
-                case .clipboard:
-                    ClipboardTabView(monitor: pasteboardMonitor)
-                case .timer:
-                    TimerTabView(adapter: keepAwakeAdapter)
-                case .notes:
-                    QuickNotesView(store: notesShelfStore)
-                case .shelf:
-                    FileShelfView(store: notesShelfStore)
-                case .system:
-                    SystemMetricsView(adapter: systemMetricsAdapter)
-                case .home:
-                    VStack(alignment: .leading, spacing: 8) {
-                        MediaPlayerView(mediaAdapter: mediaAdapter)
-                        Spacer(minLength: 0)
-                        HStack {
-                            Text(statusLine)
-                                .font(.system(size: 10.5, weight: .medium))
-                                .foregroundColor(.white.opacity(0.55))
-                                .lineLimit(1)
-                            Spacer()
+                // Active Tab Content
+                Group {
+                    switch activeTab {
+                    case .clipboard:
+                        ClipboardTabView(monitor: pasteboardMonitor)
+                    case .timer:
+                        TimerTabView(adapter: keepAwakeAdapter)
+                    case .notes:
+                        QuickNotesView(store: notesShelfStore)
+                    case .shelf:
+                        FileShelfView(store: notesShelfStore)
+                    case .system:
+                        SystemMetricsView(adapter: systemMetricsAdapter)
+                    case .home:
+                        VStack(alignment: .leading, spacing: 8) {
+                            MediaPlayerView(mediaAdapter: mediaAdapter)
+                            Spacer(minLength: 0)
+                            HStack {
+                                Text(statusLine)
+                                    .font(.system(size: 10.5, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.55))
+                                    .lineLimit(1)
+                                Spacer()
+                            }
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.horizontal, 16)
         .padding(.top, hasHardwareNotch ? 4 : 10)

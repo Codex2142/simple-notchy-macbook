@@ -41,7 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             keepAwakeAdapter: keepAwake,
             mediaAdapter: media,
             systemMetricsAdapter: systemMetrics,
-            notesShelfStore: notesShelf
+            notesShelfStore: notesShelf,
+            settingsStore: settings
         )
         controller.attachRootView(rootView)
         self.windowController = controller

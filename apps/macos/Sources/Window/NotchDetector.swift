@@ -110,11 +110,13 @@ public enum NotchDetector {
                frame.width > (leftW + rightW)
             {
                 let cutWidth = frame.width - leftW - rightW
-                notchWidth = max(160.0, min(cutWidth, 260.0))
+                notchWidth = max(184.0, min(cutWidth, 260.0))
             } else {
                 notchWidth = 184.0
             }
-            notchHeight = max(28.0, metrics.safeAreaTop)
+            // On Apple Silicon MacBooks (M1/M2/M3 Air & Pro), physical camera housing depth is at least 34-37pt.
+            // Using max(metrics.safeAreaTop, 34.0) ensures the hardware notch is fully covered without exposed edges.
+            notchHeight = max(metrics.safeAreaTop, 34.0)
         } else {
             // Virtual island dimensions for non-notched displays
             notchWidth = 200.0
@@ -122,10 +124,10 @@ public enum NotchDetector {
         }
 
         let topY = frame.maxY
-        // On notched MacBooks, add 56pt wings on both sides of the physical notch so the left circular
-        // Spotify artwork + progress ring and right waveform sit completely outside the camera housing.
-        let collapsedWidth = hasNotch ? notchWidth + 112.0 : notchWidth
-        let collapsedHeight = notchHeight
+        // On notched MacBooks, collapsed notch height has sufficient depth (notchHeight + 3pt)
+        // to cover the physical bezel curvature completely, eliminating double contours and gaps.
+        let collapsedHeight = hasNotch ? (notchHeight + 3.0) : notchHeight
+        let collapsedWidth = hasNotch ? (notchWidth + 120.0) : notchWidth
         let collapsedFrame = topCenteredRect(
             in: frame,
             topY: topY,

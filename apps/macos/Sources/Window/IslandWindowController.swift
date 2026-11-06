@@ -38,6 +38,17 @@ public enum IslandTab: String, CaseIterable, Identifiable, Sendable {
         case .system: return "cpu"
         }
     }
+
+    public var moduleId: String {
+        switch self {
+        case .home: return "media"
+        case .clipboard: return "clipboard"
+        case .timer: return "timer"
+        case .notes: return "notes"
+        case .shelf: return "shelf"
+        case .system: return "system"
+        }
+    }
 }
 
 /// Coordinates the `IslandPanel`, `DisplayDetector`, `HoverController`, and `IslandCore` state machine.

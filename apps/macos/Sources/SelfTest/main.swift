@@ -144,6 +144,25 @@ struct IslandSelfTest {
         check(settings.isModuleEnabled("clipboard"), "Default clipboard module enabled")
         try settings.setModuleEnabled("clipboard", enabled: false)
         check(!settings.isModuleEnabled("clipboard"), "Toggled clipboard module to disabled")
+        try settings.setModuleEnabled("clipboard", enabled: true)
+        check(settings.isModuleEnabled("clipboard"), "Re-enabled clipboard module")
+        check(IslandTab.clipboard.moduleId == "clipboard", "IslandTab clipboard matches module id")
+        check(IslandTab.home.moduleId == "media", "IslandTab home matches media module id")
+
+        // MacBook Air M2 Notch Geometry validation
+        let m2Screen = ScreenMetrics(
+            displayUUID: "AIR-M2",
+            displayName: "Built-in Liquid Retina Display",
+            frame: CGRect(x: 0, y: 0, width: 1470, height: 956),
+            safeAreaTop: 32,
+            auxiliaryTopLeftWidth: 633,
+            auxiliaryTopRightWidth: 633
+        )
+        let m2Geom = NotchDetector.calculateGeometry(for: m2Screen)
+        check(m2Geom.hasHardwareNotch, "M2 display has notch")
+        check(m2Geom.notchRect.height >= 34.0, "Hardware notch height >= 34.0")
+        check(m2Geom.collapsedFrame.height >= 37.0, "Collapsed notch height covers hardware notch fully")
+        check(m2Geom.collapsedFrame.maxY == 956.0, "Top edge flush with display top")
 
         let updatedRetention = FfiRetentionPolicy(
             clipboardDays: 14,
