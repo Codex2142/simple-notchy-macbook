@@ -201,6 +201,16 @@ struct IslandSelfTest {
         media.togglePlayPause()
         check(media.nowPlaying?.isPlaying == false, "togglePlayPause toggles playing flag")
 
-        print("==> PASS: All Swift + UniFFI + Window Engine + Settings + Clipboard + Timer + Media tests succeeded!")
+        // 10. Task 12: System Telemetry & Volume/Battery HUD Peek tests
+        let _ = try controllerCore.tryAutoCollapse(expectedEpoch: nil, nowMs: 5_500)
+        let sysMetrics = try SystemMetricsAdapter(core: controllerCore)
+        check(sysMetrics.telemetry.memoryTotalGb >= 1.0, "Host physical memory total >= 1GB")
+        check(sysMetrics.telemetry.batteryPercent <= 100, "Battery percentage within 0..100")
+
+        let volPeekState = try sysMetrics.reportVolumeChange(volumePercent: 65, isMuted: false, nowMs: 6_000)
+        check(volPeekState.mode == .peek, "Volume change triggers HUD .peek mode")
+        check(volPeekState.activePeek?.title == "Volume 65%", "Volume HUD Peek title matches")
+
+        print("==> PASS: All Swift + UniFFI + Window Engine + Settings + Clipboard + Timer + Media + System HUD tests succeeded!")
     }
 }

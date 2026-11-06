@@ -320,11 +320,11 @@
 **Description:** Implement efficient system telemetry in `SystemMetricsAdapter` (`host_statistics64` CPU/RAM, `IOPSCopyPowerSourcesInfo` battery, `CoreAudio` output volume listener) feeding Rust threshold filters and rendering System HUD Peeks and telemetry gauges in the Island.
 
 **Acceptance criteria:**
-- [ ] CPU, RAM, and Battery levels render accurately in the System tab with `<1%` average idle CPU overhead.
-- [ ] Volume changes trigger a smooth Island `Peek` HUD.
+- [x] CPU, RAM, and Battery levels render accurately in the System tab with `<1%` average idle CPU overhead.
+- [x] Volume changes trigger a smooth Island `Peek` HUD.
 
 **Verification:**
-- [ ] Tests pass: `cargo test --workspace && swift test --package-path apps/macos`
+- [x] Tests pass: `cargo test --workspace && ./scripts/test-macos.sh`
 
 **Dependencies:** Task 11
 

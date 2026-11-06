@@ -4,6 +4,7 @@ pub mod clipboard;
 pub mod event_bus;
 pub mod media;
 pub mod state_machine;
+pub mod system;
 pub mod timer;
 
 use clipboard::{validate_clipboard_candidate, ClipboardCaptureCandidate};
@@ -21,6 +22,7 @@ use island_storage::{
 use media::NowPlayingTrack;
 use state_machine::{ActiveActivity, IslandStateMachine, IslandStateSnapshot, PeekPreview};
 use std::sync::{Arc, Mutex};
+use system::SystemTelemetry;
 use timer::{format_duration_mm_ss, validate_timer_request};
 
 #[derive(Clone)]
@@ -29,6 +31,7 @@ pub struct AppCoordinator {
     event_bus: EventBus,
     state_machine: Arc<Mutex<IslandStateMachine>>,
     now_playing: Arc<Mutex<Option<NowPlayingTrack>>>,
+    telemetry: Arc<Mutex<Option<SystemTelemetry>>>,
 }
 
 impl AppCoordinator {
@@ -52,6 +55,7 @@ impl AppCoordinator {
             event_bus: EventBus::new(),
             state_machine: Arc::new(Mutex::new(IslandStateMachine::default())),
             now_playing: Arc::new(Mutex::new(None)),
+            telemetry: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -320,6 +324,37 @@ impl AppCoordinator {
             .lock()
             .map_err(|_| IslandError::Internal("NowPlaying mutex poisoned".to_string()))?;
         Ok(guard.clone())
+    }
+
+    pub fn update_system_telemetry(
+        &self,
+        metrics: SystemTelemetry,
+        now_ms: u64,
+    ) -> IslandResult<IslandStateSnapshot> {
+        let normalized = metrics.normalized();
+        let hud_peek = {
+            let mut guard = self
+                .telemetry
+                .lock()
+                .map_err(|_| IslandError::Internal("Telemetry mutex poisoned".to_string()))?;
+            let peek = normalized.evaluate_hud_peek(guard.as_ref());
+            *guard = Some(normalized);
+            peek
+        };
+
+        if let Some(preview) = hud_peek {
+            self.request_peek(preview, now_ms)
+        } else {
+            self.state_snapshot()
+        }
+    }
+
+    pub fn current_system_telemetry(&self) -> IslandResult<SystemTelemetry> {
+        let guard = self
+            .telemetry
+            .lock()
+            .map_err(|_| IslandError::Internal("Telemetry mutex poisoned".to_string()))?;
+        Ok(guard.clone().unwrap_or_default())
     }
 
     fn lock_sm(&self) -> IslandResult<std::sync::MutexGuard<'_, IslandStateMachine>> {

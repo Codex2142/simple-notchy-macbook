@@ -7,6 +7,7 @@ use island_core::{
     event_bus::DomainEvent,
     media::NowPlayingTrack,
     state_machine::{ActiveActivity, IslandPrimaryState, IslandStateSnapshot, PeekPreview},
+    system::SystemTelemetry,
     AppCoordinator,
 };
 use island_storage::{
@@ -224,6 +225,45 @@ impl From<FfiNowPlayingTrack> for NowPlayingTrack {
             duration_secs: t.duration_secs,
             elapsed_secs: t.elapsed_secs,
             is_playing: t.is_playing,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiSystemTelemetry {
+    pub cpu_usage_percent: f64,
+    pub memory_used_gb: f64,
+    pub memory_total_gb: f64,
+    pub battery_percent: u32,
+    pub is_charging: bool,
+    pub volume_percent: u32,
+    pub is_muted: bool,
+}
+
+impl From<SystemTelemetry> for FfiSystemTelemetry {
+    fn from(t: SystemTelemetry) -> Self {
+        Self {
+            cpu_usage_percent: t.cpu_usage_percent,
+            memory_used_gb: t.memory_used_gb,
+            memory_total_gb: t.memory_total_gb,
+            battery_percent: t.battery_percent,
+            is_charging: t.is_charging,
+            volume_percent: t.volume_percent,
+            is_muted: t.is_muted,
+        }
+    }
+}
+
+impl From<FfiSystemTelemetry> for SystemTelemetry {
+    fn from(t: FfiSystemTelemetry) -> Self {
+        Self {
+            cpu_usage_percent: t.cpu_usage_percent,
+            memory_used_gb: t.memory_used_gb,
+            memory_total_gb: t.memory_total_gb,
+            battery_percent: t.battery_percent,
+            is_charging: t.is_charging,
+            volume_percent: t.volume_percent,
+            is_muted: t.is_muted,
         }
     }
 }
@@ -527,6 +567,21 @@ impl IslandCore {
 
     pub fn current_now_playing(&self) -> Result<Option<FfiNowPlayingTrack>, FfiError> {
         Ok(self.coordinator.current_now_playing()?.map(Into::into))
+    }
+
+    pub fn update_system_telemetry(
+        &self,
+        metrics: FfiSystemTelemetry,
+        now_ms: u64,
+    ) -> Result<FfiIslandViewState, FfiError> {
+        Ok(self
+            .coordinator
+            .update_system_telemetry(metrics.into(), now_ms)?
+            .into())
+    }
+
+    pub fn current_system_telemetry(&self) -> Result<FfiSystemTelemetry, FfiError> {
+        Ok(self.coordinator.current_system_telemetry()?.into())
     }
 }
 

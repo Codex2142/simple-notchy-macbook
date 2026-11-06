@@ -543,6 +543,8 @@ public protocol IslandCoreProtocol : AnyObject {
     
     func currentState() throws  -> FfiIslandViewState
     
+    func currentSystemTelemetry() throws  -> FfiSystemTelemetry
+    
     func deleteClipboardItem(itemId: Int64) throws 
     
     func expand(nowMs: UInt64) throws  -> FfiIslandViewState
@@ -584,6 +586,8 @@ public protocol IslandCoreProtocol : AnyObject {
     func unpin(nowMs: UInt64) throws  -> FfiIslandViewState
     
     func updateNowPlaying(track: FfiNowPlayingTrack, nowMs: UInt64) throws  -> FfiIslandViewState
+    
+    func updateSystemTelemetry(metrics: FfiSystemTelemetry, nowMs: UInt64) throws  -> FfiIslandViewState
     
 }
 
@@ -695,6 +699,13 @@ open func currentNowPlaying()throws  -> FfiNowPlayingTrack? {
 open func currentState()throws  -> FfiIslandViewState {
     return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_current_state(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+open func currentSystemTelemetry()throws  -> FfiSystemTelemetry {
+    return try  FfiConverterTypeFfiSystemTelemetry.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_current_system_telemetry(self.uniffiClonePointer(),$0
     )
 })
 }
@@ -869,6 +880,15 @@ open func updateNowPlaying(track: FfiNowPlayingTrack, nowMs: UInt64)throws  -> F
     return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_update_now_playing(self.uniffiClonePointer(),
         FfiConverterTypeFfiNowPlayingTrack.lower(track),
+        FfiConverterUInt64.lower(nowMs),$0
+    )
+})
+}
+    
+open func updateSystemTelemetry(metrics: FfiSystemTelemetry, nowMs: UInt64)throws  -> FfiIslandViewState {
+    return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_update_system_telemetry(self.uniffiClonePointer(),
+        FfiConverterTypeFfiSystemTelemetry.lower(metrics),
         FfiConverterUInt64.lower(nowMs),$0
     )
 })
@@ -1739,6 +1759,112 @@ public func FfiConverterTypeFfiRetentionPolicy_lower(_ value: FfiRetentionPolicy
 }
 
 
+public struct FfiSystemTelemetry {
+    public var cpuUsagePercent: Double
+    public var memoryUsedGb: Double
+    public var memoryTotalGb: Double
+    public var batteryPercent: UInt32
+    public var isCharging: Bool
+    public var volumePercent: UInt32
+    public var isMuted: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(cpuUsagePercent: Double, memoryUsedGb: Double, memoryTotalGb: Double, batteryPercent: UInt32, isCharging: Bool, volumePercent: UInt32, isMuted: Bool) {
+        self.cpuUsagePercent = cpuUsagePercent
+        self.memoryUsedGb = memoryUsedGb
+        self.memoryTotalGb = memoryTotalGb
+        self.batteryPercent = batteryPercent
+        self.isCharging = isCharging
+        self.volumePercent = volumePercent
+        self.isMuted = isMuted
+    }
+}
+
+
+
+extension FfiSystemTelemetry: Equatable, Hashable {
+    public static func ==(lhs: FfiSystemTelemetry, rhs: FfiSystemTelemetry) -> Bool {
+        if lhs.cpuUsagePercent != rhs.cpuUsagePercent {
+            return false
+        }
+        if lhs.memoryUsedGb != rhs.memoryUsedGb {
+            return false
+        }
+        if lhs.memoryTotalGb != rhs.memoryTotalGb {
+            return false
+        }
+        if lhs.batteryPercent != rhs.batteryPercent {
+            return false
+        }
+        if lhs.isCharging != rhs.isCharging {
+            return false
+        }
+        if lhs.volumePercent != rhs.volumePercent {
+            return false
+        }
+        if lhs.isMuted != rhs.isMuted {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(cpuUsagePercent)
+        hasher.combine(memoryUsedGb)
+        hasher.combine(memoryTotalGb)
+        hasher.combine(batteryPercent)
+        hasher.combine(isCharging)
+        hasher.combine(volumePercent)
+        hasher.combine(isMuted)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiSystemTelemetry: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiSystemTelemetry {
+        return
+            try FfiSystemTelemetry(
+                cpuUsagePercent: FfiConverterDouble.read(from: &buf), 
+                memoryUsedGb: FfiConverterDouble.read(from: &buf), 
+                memoryTotalGb: FfiConverterDouble.read(from: &buf), 
+                batteryPercent: FfiConverterUInt32.read(from: &buf), 
+                isCharging: FfiConverterBool.read(from: &buf), 
+                volumePercent: FfiConverterUInt32.read(from: &buf), 
+                isMuted: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiSystemTelemetry, into buf: inout [UInt8]) {
+        FfiConverterDouble.write(value.cpuUsagePercent, into: &buf)
+        FfiConverterDouble.write(value.memoryUsedGb, into: &buf)
+        FfiConverterDouble.write(value.memoryTotalGb, into: &buf)
+        FfiConverterUInt32.write(value.batteryPercent, into: &buf)
+        FfiConverterBool.write(value.isCharging, into: &buf)
+        FfiConverterUInt32.write(value.volumePercent, into: &buf)
+        FfiConverterBool.write(value.isMuted, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiSystemTelemetry_lift(_ buf: RustBuffer) throws -> FfiSystemTelemetry {
+    return try FfiConverterTypeFfiSystemTelemetry.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiSystemTelemetry_lower(_ value: FfiSystemTelemetry) -> RustBuffer {
+    return FfiConverterTypeFfiSystemTelemetry.lower(value)
+}
+
+
 public struct FfiTimerSession {
     public var id: Int64
     public var kind: String
@@ -2435,6 +2561,9 @@ private var initializationResult: InitializationResult = {
     if (uniffi_island_bridge_checksum_method_islandcore_current_state() != 28493) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_island_bridge_checksum_method_islandcore_current_system_telemetry() != 55799) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_island_bridge_checksum_method_islandcore_delete_clipboard_item() != 58645) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -2496,6 +2625,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_update_now_playing() != 38818) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_update_system_telemetry() != 62429) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_constructor_islandcore_new() != 14868) {
