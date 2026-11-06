@@ -38,3 +38,12 @@ cargo test --workspace
 # 3. Build ProjectIslandApp and run macOS Swift + UniFFI integration tests
 ./scripts/test-macos.sh
 ```
+
+## Install & Run
+
+See the full step-by-step guide (clone, build, install, launch at login, permissions, troubleshooting): [docs/USER_MANUAL.md](docs/USER_MANUAL.md)
+
+```bash
+./scripts/install-app.sh      # build + install to ~/Applications + launch at login
+./scripts/uninstall-app.sh    # remove
+```

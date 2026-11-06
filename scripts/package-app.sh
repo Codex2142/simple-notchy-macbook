@@ -29,6 +29,16 @@ mkdir -p "$APP_DIR/Contents/Resources"
 cp /tmp/swiftpm-build/debug/ProjectIslandApp "$APP_DIR/Contents/MacOS/ProjectIslandApp"
 chmod +x "$APP_DIR/Contents/MacOS/ProjectIslandApp"
 
+# Bundle the Rust bridge dylib inside the .app so it no longer depends on the repo location.
+mkdir -p "$APP_DIR/Contents/Frameworks"
+cp "$ROOT_DIR/target/debug/libisland_bridge.dylib" "$APP_DIR/Contents/Frameworks/libisland_bridge.dylib"
+OLD_DYLIB_PATH="$(otool -L "$APP_DIR/Contents/MacOS/ProjectIslandApp" | awk '/libisland_bridge.dylib/ {print $1}' | head -n 1)"
+install_name_tool -id "@rpath/libisland_bridge.dylib" "$APP_DIR/Contents/Frameworks/libisland_bridge.dylib"
+if [ -n "$OLD_DYLIB_PATH" ]; then
+    install_name_tool -change "$OLD_DYLIB_PATH" "@executable_path/../Frameworks/libisland_bridge.dylib" \
+        "$APP_DIR/Contents/MacOS/ProjectIslandApp"
+fi
+
 cat > "$APP_DIR/Contents/Info.plist" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
