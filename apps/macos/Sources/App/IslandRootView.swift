@@ -33,17 +33,14 @@ public struct IslandRootView: View {
     public var body: some View {
         ZStack(alignment: .top) {
             ZStack(alignment: .top) {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.black.opacity(0.96))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.8)
-                    )
+                // Pure opaque black (same as the physical notch), flat top, rounded bottom corners only.
+                NotchShape(topRadius: 0, bottomRadius: cornerRadius)
+                    .fill(Color.black)
 
                 contentForMode
             }
             .frame(width: activePillSize.width, height: activePillSize.height, alignment: .top)
-            .clipped()
+            .clipShape(NotchShape(topRadius: 0, bottomRadius: cornerRadius))
             .onHover { inside in
                 if inside {
                     controller.handlePointerEntered()
@@ -53,6 +50,7 @@ public struct IslandRootView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .ignoresSafeArea()
         .animation(.spring(response: 0.30, dampingFraction: 0.84), value: controller.viewState.mode)
     }
 
