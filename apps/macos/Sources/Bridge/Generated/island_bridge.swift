@@ -431,6 +431,22 @@ fileprivate struct FfiConverterUInt64: FfiConverterPrimitive {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterInt64: FfiConverterPrimitive {
+    typealias FfiType = Int64
+    typealias SwiftType = Int64
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Int64 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Int64, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterDouble: FfiConverterPrimitive {
     typealias FfiType = Double
     typealias SwiftType = Double
@@ -519,13 +535,19 @@ public protocol IslandCoreProtocol : AnyObject {
      */
     func addStateListener(listener: IslandStateListener) 
     
+    func captureClipboardItem(input: FfiClipboardCaptureInput, nowSecs: Int64) throws  -> FfiClipboardItem
+    
     func clearActivity(nowMs: UInt64) throws  -> FfiIslandViewState
     
     func currentState() throws  -> FfiIslandViewState
     
+    func deleteClipboardItem(itemId: Int64) throws 
+    
     func expand(nowMs: UInt64) throws  -> FfiIslandViewState
     
     func getRetentionPolicy() throws  -> FfiRetentionPolicy
+    
+    func listClipboardItems(query: String?, limit: UInt32) throws  -> [FfiClipboardItem]
     
     func listDisplayProfiles() throws  -> [FfiDisplayProfile]
     
@@ -536,6 +558,8 @@ public protocol IslandCoreProtocol : AnyObject {
     func registerDisplayProfile(profile: FfiDisplayProfile) throws 
     
     func requestPeek(preview: FfiPeekInfo, nowMs: UInt64) throws  -> FfiIslandViewState
+    
+    func setClipboardItemPinned(itemId: Int64, pinned: Bool) throws 
     
     func setHidden(hidden: Bool, nowMs: UInt64) throws  -> FfiIslandViewState
     
@@ -634,6 +658,15 @@ open func addStateListener(listener: IslandStateListener) {try! rustCall() {
 }
 }
     
+open func captureClipboardItem(input: FfiClipboardCaptureInput, nowSecs: Int64)throws  -> FfiClipboardItem {
+    return try  FfiConverterTypeFfiClipboardItem.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_capture_clipboard_item(self.uniffiClonePointer(),
+        FfiConverterTypeFfiClipboardCaptureInput.lower(input),
+        FfiConverterInt64.lower(nowSecs),$0
+    )
+})
+}
+    
 open func clearActivity(nowMs: UInt64)throws  -> FfiIslandViewState {
     return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_clear_activity(self.uniffiClonePointer(),
@@ -649,6 +682,13 @@ open func currentState()throws  -> FfiIslandViewState {
 })
 }
     
+open func deleteClipboardItem(itemId: Int64)throws  {try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_delete_clipboard_item(self.uniffiClonePointer(),
+        FfiConverterInt64.lower(itemId),$0
+    )
+}
+}
+    
 open func expand(nowMs: UInt64)throws  -> FfiIslandViewState {
     return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_expand(self.uniffiClonePointer(),
@@ -660,6 +700,15 @@ open func expand(nowMs: UInt64)throws  -> FfiIslandViewState {
 open func getRetentionPolicy()throws  -> FfiRetentionPolicy {
     return try  FfiConverterTypeFfiRetentionPolicy.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_get_retention_policy(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+open func listClipboardItems(query: String?, limit: UInt32)throws  -> [FfiClipboardItem] {
+    return try  FfiConverterSequenceTypeFfiClipboardItem.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_list_clipboard_items(self.uniffiClonePointer(),
+        FfiConverterOptionString.lower(query),
+        FfiConverterUInt32.lower(limit),$0
     )
 })
 }
@@ -700,6 +749,14 @@ open func requestPeek(preview: FfiPeekInfo, nowMs: UInt64)throws  -> FfiIslandVi
         FfiConverterUInt64.lower(nowMs),$0
     )
 })
+}
+    
+open func setClipboardItemPinned(itemId: Int64, pinned: Bool)throws  {try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_set_clipboard_item_pinned(self.uniffiClonePointer(),
+        FfiConverterInt64.lower(itemId),
+        FfiConverterBool.lower(pinned),$0
+    )
+}
 }
     
 open func setHidden(hidden: Bool, nowMs: UInt64)throws  -> FfiIslandViewState {
@@ -896,6 +953,202 @@ public func FfiConverterTypeFfiActivityInfo_lift(_ buf: RustBuffer) throws -> Ff
 #endif
 public func FfiConverterTypeFfiActivityInfo_lower(_ value: FfiActivityInfo) -> RustBuffer {
     return FfiConverterTypeFfiActivityInfo.lower(value)
+}
+
+
+public struct FfiClipboardCaptureInput {
+    public var contentType: String
+    public var textContent: String
+    public var sourceApp: String
+    public var pasteboardTypes: [String]
+    public var isSecureInputActive: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(contentType: String, textContent: String, sourceApp: String, pasteboardTypes: [String], isSecureInputActive: Bool) {
+        self.contentType = contentType
+        self.textContent = textContent
+        self.sourceApp = sourceApp
+        self.pasteboardTypes = pasteboardTypes
+        self.isSecureInputActive = isSecureInputActive
+    }
+}
+
+
+
+extension FfiClipboardCaptureInput: Equatable, Hashable {
+    public static func ==(lhs: FfiClipboardCaptureInput, rhs: FfiClipboardCaptureInput) -> Bool {
+        if lhs.contentType != rhs.contentType {
+            return false
+        }
+        if lhs.textContent != rhs.textContent {
+            return false
+        }
+        if lhs.sourceApp != rhs.sourceApp {
+            return false
+        }
+        if lhs.pasteboardTypes != rhs.pasteboardTypes {
+            return false
+        }
+        if lhs.isSecureInputActive != rhs.isSecureInputActive {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(contentType)
+        hasher.combine(textContent)
+        hasher.combine(sourceApp)
+        hasher.combine(pasteboardTypes)
+        hasher.combine(isSecureInputActive)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiClipboardCaptureInput: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiClipboardCaptureInput {
+        return
+            try FfiClipboardCaptureInput(
+                contentType: FfiConverterString.read(from: &buf), 
+                textContent: FfiConverterString.read(from: &buf), 
+                sourceApp: FfiConverterString.read(from: &buf), 
+                pasteboardTypes: FfiConverterSequenceString.read(from: &buf), 
+                isSecureInputActive: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiClipboardCaptureInput, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.contentType, into: &buf)
+        FfiConverterString.write(value.textContent, into: &buf)
+        FfiConverterString.write(value.sourceApp, into: &buf)
+        FfiConverterSequenceString.write(value.pasteboardTypes, into: &buf)
+        FfiConverterBool.write(value.isSecureInputActive, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiClipboardCaptureInput_lift(_ buf: RustBuffer) throws -> FfiClipboardCaptureInput {
+    return try FfiConverterTypeFfiClipboardCaptureInput.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiClipboardCaptureInput_lower(_ value: FfiClipboardCaptureInput) -> RustBuffer {
+    return FfiConverterTypeFfiClipboardCaptureInput.lower(value)
+}
+
+
+public struct FfiClipboardItem {
+    public var id: Int64
+    public var contentType: String
+    public var textContent: String
+    public var sourceApp: String
+    public var isPinned: Bool
+    public var createdAt: Int64
+    public var updatedAt: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: Int64, contentType: String, textContent: String, sourceApp: String, isPinned: Bool, createdAt: Int64, updatedAt: Int64) {
+        self.id = id
+        self.contentType = contentType
+        self.textContent = textContent
+        self.sourceApp = sourceApp
+        self.isPinned = isPinned
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+
+
+extension FfiClipboardItem: Equatable, Hashable {
+    public static func ==(lhs: FfiClipboardItem, rhs: FfiClipboardItem) -> Bool {
+        if lhs.id != rhs.id {
+            return false
+        }
+        if lhs.contentType != rhs.contentType {
+            return false
+        }
+        if lhs.textContent != rhs.textContent {
+            return false
+        }
+        if lhs.sourceApp != rhs.sourceApp {
+            return false
+        }
+        if lhs.isPinned != rhs.isPinned {
+            return false
+        }
+        if lhs.createdAt != rhs.createdAt {
+            return false
+        }
+        if lhs.updatedAt != rhs.updatedAt {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(contentType)
+        hasher.combine(textContent)
+        hasher.combine(sourceApp)
+        hasher.combine(isPinned)
+        hasher.combine(createdAt)
+        hasher.combine(updatedAt)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiClipboardItem: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiClipboardItem {
+        return
+            try FfiClipboardItem(
+                id: FfiConverterInt64.read(from: &buf), 
+                contentType: FfiConverterString.read(from: &buf), 
+                textContent: FfiConverterString.read(from: &buf), 
+                sourceApp: FfiConverterString.read(from: &buf), 
+                isPinned: FfiConverterBool.read(from: &buf), 
+                createdAt: FfiConverterInt64.read(from: &buf), 
+                updatedAt: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiClipboardItem, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.id, into: &buf)
+        FfiConverterString.write(value.contentType, into: &buf)
+        FfiConverterString.write(value.textContent, into: &buf)
+        FfiConverterString.write(value.sourceApp, into: &buf)
+        FfiConverterBool.write(value.isPinned, into: &buf)
+        FfiConverterInt64.write(value.createdAt, into: &buf)
+        FfiConverterInt64.write(value.updatedAt, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiClipboardItem_lift(_ buf: RustBuffer) throws -> FfiClipboardItem {
+    return try FfiConverterTypeFfiClipboardItem.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiClipboardItem_lower(_ value: FfiClipboardItem) -> RustBuffer {
+    return FfiConverterTypeFfiClipboardItem.lower(value)
 }
 
 
@@ -1643,6 +1896,30 @@ fileprivate struct FfiConverterOptionUInt64: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
+    typealias SwiftType = String?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterString.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterString.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeFfiActivityInfo: FfiConverterRustBuffer {
     typealias SwiftType = FfiActivityInfo?
 
@@ -1685,6 +1962,56 @@ fileprivate struct FfiConverterOptionTypeFfiPeekInfo: FfiConverterRustBuffer {
         case 1: return try FfiConverterTypeFfiPeekInfo.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceString: FfiConverterRustBuffer {
+    typealias SwiftType = [String]
+
+    public static func write(_ value: [String], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterString.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [String] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [String]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterString.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFfiClipboardItem: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiClipboardItem]
+
+    public static func write(_ value: [FfiClipboardItem], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiClipboardItem.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiClipboardItem] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiClipboardItem]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiClipboardItem.read(from: &buf))
+        }
+        return seq
     }
 }
 
@@ -1756,16 +2083,25 @@ private var initializationResult: InitializationResult = {
     if (uniffi_island_bridge_checksum_method_islandcore_add_state_listener() != 39203) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_island_bridge_checksum_method_islandcore_capture_clipboard_item() != 2466) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_island_bridge_checksum_method_islandcore_clear_activity() != 57580) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_current_state() != 28493) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_island_bridge_checksum_method_islandcore_delete_clipboard_item() != 58645) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_island_bridge_checksum_method_islandcore_expand() != 29740) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_get_retention_policy() != 13524) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_list_clipboard_items() != 19552) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_list_display_profiles() != 65008) {
@@ -1781,6 +2117,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_request_peek() != 46669) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_set_clipboard_item_pinned() != 3011) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_set_hidden() != 43264) {

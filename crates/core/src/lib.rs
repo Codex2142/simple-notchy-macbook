@@ -1,11 +1,14 @@
 //! Application Core coordinating the Island state machine, EventBus, and SQLite repositories.
 
+pub mod clipboard;
 pub mod event_bus;
 pub mod state_machine;
 
+use clipboard::{validate_clipboard_candidate, ClipboardCaptureCandidate};
 use event_bus::{DomainEvent, EventBus};
 use island_common::{AppConfig, IslandError, IslandResult, RetentionPolicy};
 use island_storage::{
+    clipboard_repo::{ClipboardItemRecord, ClipboardRepository},
     repositories::{
         DisplayProfileRecord, DisplayProfileRepository, ModuleSettingRecord,
         ModuleSettingsRepository, SettingsRepository,
@@ -190,6 +193,49 @@ impl AppCoordinator {
         Ok(())
     }
 
+    pub fn capture_clipboard_item(
+        &self,
+        candidate: &ClipboardCaptureCandidate,
+        now_secs: i64,
+    ) -> IslandResult<ClipboardItemRecord> {
+        validate_clipboard_candidate(candidate)?;
+        let item = self.storage.clipboard_repo().insert_or_bump(
+            &candidate.content_type,
+            &candidate.text_content,
+            &candidate.source_app,
+            now_secs,
+        )?;
+        let retention = self.get_retention_policy()?;
+        let _ = self
+            .storage
+            .clipboard_repo()
+            .prune_expired(retention.clipboard_days, now_secs);
+        Ok(item)
+    }
+
+    pub fn list_clipboard_items(
+        &self,
+        query: Option<&str>,
+        limit: usize,
+    ) -> IslandResult<Vec<ClipboardItemRecord>> {
+        self.storage.clipboard_repo().list_or_search(query, limit)
+    }
+
+    pub fn set_clipboard_item_pinned(&self, item_id: i64, pinned: bool) -> IslandResult<()> {
+        self.storage.clipboard_repo().set_pinned(item_id, pinned)
+    }
+
+    pub fn delete_clipboard_item(&self, item_id: i64) -> IslandResult<()> {
+        self.storage.clipboard_repo().delete(item_id)
+    }
+
+    pub fn prune_expired_clipboard(&self, now_secs: i64) -> IslandResult<usize> {
+        let retention = self.get_retention_policy()?;
+        self.storage
+            .clipboard_repo()
+            .prune_expired(retention.clipboard_days, now_secs)
+    }
+
     fn lock_sm(&self) -> IslandResult<std::sync::MutexGuard<'_, IslandStateMachine>> {
         self.state_machine
             .lock()
@@ -214,5 +260,48 @@ mod tests {
         let modules = coord.list_modules().expect("list modules");
         assert_eq!(modules.len(), 1);
         assert!(modules[0].enabled);
+
+        let item1 = coord
+            .capture_clipboard_item(
+                &ClipboardCaptureCandidate {
+                    content_type: "public.utf8-plain-text".to_string(),
+                    text_content: "first snippet".to_string(),
+                    source_app: "Notes".to_string(),
+                    pasteboard_types: vec!["public.utf8-plain-text".to_string()],
+                    is_secure_input_active: false,
+                },
+                1_000,
+            )
+            .expect("capture first item");
+        coord
+            .set_clipboard_item_pinned(item1.id, true)
+            .expect("pin item1");
+
+        let _item2 = coord
+            .capture_clipboard_item(
+                &ClipboardCaptureCandidate {
+                    content_type: "public.utf8-plain-text".to_string(),
+                    text_content: "ephemeral text".to_string(),
+                    source_app: "Safari".to_string(),
+                    pasteboard_types: vec!["public.utf8-plain-text".to_string()],
+                    is_secure_input_active: false,
+                },
+                1_100,
+            )
+            .expect("capture second item");
+
+        // Advance time by 8 days -> item2 pruned, item1 kept because pinned
+        let eight_days_later = 1_100 + 8 * 86_400;
+        let pruned = coord
+            .prune_expired_clipboard(eight_days_later)
+            .expect("prune expired");
+        assert_eq!(pruned, 1);
+
+        let remaining = coord
+            .list_clipboard_items(None, 20)
+            .expect("list remaining");
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].text_content, "first snippet");
+        assert!(remaining[0].is_pinned);
     }
 }

@@ -1,5 +1,6 @@
 //! SQLite storage engine, migration runner, and repository traits/implementations for Project Island.
 
+pub mod clipboard_repo;
 pub mod repositories;
 
 use island_common::{unix_timestamp_secs, IslandError, IslandResult};
@@ -8,6 +9,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 const MIGRATION_0001: &str = include_str!("../../../migrations/0001_initial_schema.sql");
+const MIGRATION_0002: &str = include_str!("../../../migrations/0002_clipboard.sql");
 
 struct Migration {
     version: i64,
@@ -15,11 +17,18 @@ struct Migration {
     sql: &'static str,
 }
 
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "0001_initial_schema",
-    sql: MIGRATION_0001,
-}];
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "0001_initial_schema",
+        sql: MIGRATION_0001,
+    },
+    Migration {
+        version: 2,
+        name: "0002_clipboard",
+        sql: MIGRATION_0002,
+    },
+];
 
 /// Thread-safe handle to the Project Island SQLite database.
 #[derive(Clone)]

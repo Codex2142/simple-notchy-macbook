@@ -129,6 +129,39 @@ struct IslandSelfTest {
         try settings.updateRetentionPolicy(updatedRetention)
         check(settings.retentionPolicy.clipboardDays == 14, "Retention policy updated to 14 days")
 
-        print("==> PASS: All Swift + UniFFI + Window Engine + Settings/Security tests succeeded!")
+        // 7. Tasks 8 & 9: Clipboard Manager & Privacy Filtering tests
+        let pasteboard = try PasteboardMonitor(core: controllerCore)
+        let captured = try pasteboard.captureCandidate(
+            text: "https://example.com/project-island",
+            sourceApp: "Safari"
+        )
+        check(pasteboard.items.count == 1, "Expected 1 captured clipboard item")
+        check(captured.textContent == "https://example.com/project-island", "Clipboard text matches")
+
+        // Verify ConcealedType is blocked
+        var concealedBlocked = false
+        do {
+            try pasteboard.captureCandidate(
+                text: "super-secret-password",
+                sourceApp: "1Password",
+                pasteboardTypes: ["public.utf8-plain-text", "org.nspasteboard.ConcealedType"]
+            )
+        } catch {
+            concealedBlocked = true
+        }
+        check(concealedBlocked, "ConcealedType password copy must be blocked by privacy filter")
+        check(pasteboard.items.count == 1, "Blocked item must not be stored")
+
+        try pasteboard.togglePin(for: captured)
+        check(pasteboard.items.first?.isPinned == true, "Clipboard item pinned")
+
+        pasteboard.searchQuery = "project-island"
+        try pasteboard.refreshItems()
+        check(pasteboard.items.count == 1, "Search query matched item")
+
+        try pasteboard.deleteItem(captured)
+        check(pasteboard.items.isEmpty, "Deleted clipboard item")
+
+        print("==> PASS: All Swift + UniFFI + Window Engine + Settings + Clipboard tests succeeded!")
     }
 }

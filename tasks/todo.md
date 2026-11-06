@@ -215,13 +215,13 @@
 **Description:** Add `migrations/0002_clipboard.sql` (`clipboard_items`, `clipboard_pins`) and implement clipboard capture validation, privacy filtering (concealed/transient markers, secure input flag), search, pinning, and retention pruning in Rust.
 
 **Acceptance criteria:**
-- [ ] Concealed/transient items or items captured during Secure Input are rejected before persistence.
-- [ ] Duplicate consecutive copies update timestamp rather than duplicating rows.
-- [ ] Search, pin, delete, and 7-day retention pruning pass unit and SQLite integration tests.
+- [x] Concealed/transient items or items captured during Secure Input are rejected before persistence.
+- [x] Duplicate consecutive copies update timestamp rather than duplicating rows.
+- [x] Search, pin, delete, and 7-day retention pruning pass unit and SQLite integration tests.
 
 **Verification:**
-- [ ] Tests pass: `cargo test --workspace`
-- [ ] Build succeeds: `./scripts/build-rust-macos.sh`
+- [x] Tests pass: `cargo test --workspace`
+- [x] Build succeeds: `./scripts/build-rust-macos.sh`
 
 **Dependencies:** Task 7
 
@@ -240,12 +240,12 @@
 **Description:** Implement `PasteboardMonitor` (`NSPasteboard.general.changeCount` + `IsSecureEventInputEnabled()` check) and `ClipboardTabView` inside the expanded Island for searching, pinning, copying back, and deleting clipboard items.
 
 **Acceptance criteria:**
-- [ ] Copying text in any app updates the Island Clipboard tab when enabled.
-- [ ] Password manager copies (`ConcealedType`) are ignored.
-- [ ] Clicking an item copies it back to `NSPasteboard`; pinning protects it from retention cleanup.
+- [x] Copying text in any app updates the Island Clipboard tab when enabled.
+- [x] Password manager copies (`ConcealedType`) are ignored.
+- [x] Clicking an item copies it back to `NSPasteboard`; pinning protects it from retention cleanup.
 
 **Verification:**
-- [ ] Tests pass: `swift test --package-path apps/macos`
+- [x] Tests pass: `./scripts/test-macos.sh`
 
 **Dependencies:** Task 8
 
@@ -260,9 +260,9 @@
 ---
 
 ## Checkpoint 3: After Tasks 7–9
-- [ ] All Rust and Swift tests pass
-- [ ] Settings persist in `project_island.db`
-- [ ] Clipboard history captures, filters sensitive data, searches, and pins end-to-end
+- [x] All Rust and Swift tests pass
+- [x] Settings persist in `project_island.db`
+- [x] Clipboard history captures, filters sensitive data, searches, and pins end-to-end
 
 ---
 

@@ -8,6 +8,7 @@ import IslandFeatures
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowController: IslandWindowController?
+    private var pasteboardMonitor: PasteboardMonitor?
     private var settingsStore: SettingsStore?
     private var settingsWindow: NSWindow?
     private var statusItem: NSStatusItem?
@@ -18,15 +19,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let dbPath = Self.defaultDatabasePath()
         guard let core = try? IslandCore(databasePath: dbPath),
               let controller = try? IslandWindowController(core: core),
+              let pasteboard = try? PasteboardMonitor(core: core),
               let settings = try? SettingsStore(core: core)
         else {
             fputs("Failed to initialize IslandCore\n", stderr)
             return
         }
 
-        let rootView = IslandRootView(controller: controller)
+        pasteboard.startMonitoring()
+        let rootView = IslandRootView(controller: controller, pasteboardMonitor: pasteboard)
         controller.attachRootView(rootView)
         self.windowController = controller
+        self.pasteboardMonitor = pasteboard
         self.settingsStore = settings
         setupMenuBarExtra()
     }

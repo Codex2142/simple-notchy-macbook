@@ -3,11 +3,15 @@
 
 use island_common::{AppConfig, IslandError, RetentionPolicy};
 use island_core::{
+    clipboard::ClipboardCaptureCandidate,
     event_bus::DomainEvent,
     state_machine::{ActiveActivity, IslandPrimaryState, IslandStateSnapshot, PeekPreview},
     AppCoordinator,
 };
-use island_storage::repositories::{DisplayProfileRecord, ModuleSettingRecord};
+use island_storage::{
+    clipboard_repo::ClipboardItemRecord,
+    repositories::{DisplayProfileRecord, ModuleSettingRecord},
+};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -136,6 +140,40 @@ pub struct FfiRetentionPolicy {
     pub timer_history_days: u32,
     pub activity_events_days: u32,
     pub logs_days: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiClipboardItem {
+    pub id: i64,
+    pub content_type: String,
+    pub text_content: String,
+    pub source_app: String,
+    pub is_pinned: bool,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+impl From<ClipboardItemRecord> for FfiClipboardItem {
+    fn from(r: ClipboardItemRecord) -> Self {
+        Self {
+            id: r.id,
+            content_type: r.content_type,
+            text_content: r.text_content,
+            source_app: r.source_app,
+            is_pinned: r.is_pinned,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiClipboardCaptureInput {
+    pub content_type: String,
+    pub text_content: String,
+    pub source_app: String,
+    pub pasteboard_types: Vec<String>,
+    pub is_secure_input_active: bool,
 }
 
 impl From<RetentionPolicy> for FfiRetentionPolicy {
@@ -338,6 +376,45 @@ impl IslandCore {
 
     pub fn set_retention_policy(&self, policy: FfiRetentionPolicy) -> Result<(), FfiError> {
         self.coordinator.set_retention_policy(&policy.into())?;
+        Ok(())
+    }
+
+    pub fn capture_clipboard_item(
+        &self,
+        input: FfiClipboardCaptureInput,
+        now_secs: i64,
+    ) -> Result<FfiClipboardItem, FfiError> {
+        let item = self.coordinator.capture_clipboard_item(
+            &ClipboardCaptureCandidate {
+                content_type: input.content_type,
+                text_content: input.text_content,
+                source_app: input.source_app,
+                pasteboard_types: input.pasteboard_types,
+                is_secure_input_active: input.is_secure_input_active,
+            },
+            now_secs,
+        )?;
+        Ok(item.into())
+    }
+
+    pub fn list_clipboard_items(
+        &self,
+        query: Option<String>,
+        limit: u32,
+    ) -> Result<Vec<FfiClipboardItem>, FfiError> {
+        let items = self
+            .coordinator
+            .list_clipboard_items(query.as_deref(), limit as usize)?;
+        Ok(items.into_iter().map(Into::into).collect())
+    }
+
+    pub fn set_clipboard_item_pinned(&self, item_id: i64, pinned: bool) -> Result<(), FfiError> {
+        self.coordinator.set_clipboard_item_pinned(item_id, pinned)?;
+        Ok(())
+    }
+
+    pub fn delete_clipboard_item(&self, item_id: i64) -> Result<(), FfiError> {
+        self.coordinator.delete_clipboard_item(item_id)?;
         Ok(())
     }
 }

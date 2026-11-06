@@ -33,9 +33,9 @@ See `tasks/todo.md` for the detailed task breakdown, acceptance criteria, verifi
 - [x] Task 7: Settings UI, Menu Bar Item & Keychain/Permission Adapters
 
 ### Phase 4: M3 Core Feature Vertical Slices
-- [ ] Task 8: Vertical Slice — Clipboard Manager Backend
-- [ ] Task 9: Vertical Slice — macOS Pasteboard Monitor & Island Clipboard UI
-- [ ] Checkpoint 3: Settings + Clipboard End-to-End
+- [x] Task 8: Vertical Slice — Clipboard Manager Backend
+- [x] Task 9: Vertical Slice — macOS Pasteboard Monitor & Island Clipboard UI
+- [x] Checkpoint 3: Settings + Clipboard End-to-End
 - [ ] Task 10: Vertical Slice — Timer, Pomodoro & Keep Awake
 - [ ] Task 11: Vertical Slice — Media Now Playing & Playback Controls
 - [ ] Task 12: Vertical Slice — System Monitoring & Battery/Volume HUDs

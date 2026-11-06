@@ -1,13 +1,17 @@
 import SwiftUI
 import IslandBridge
 import IslandWindow
+import IslandIntegrations
+import IslandFeatures
 
 /// Primary SwiftUI shell for the Dynamic Island across Collapsed, Activity, Peek, and Expanded/Pinned modes.
 public struct IslandRootView: View {
     @ObservedObject public var controller: IslandWindowController
+    @ObservedObject public var pasteboardMonitor: PasteboardMonitor
 
-    public init(controller: IslandWindowController) {
+    public init(controller: IslandWindowController, pasteboardMonitor: PasteboardMonitor) {
         self.controller = controller
+        self.pasteboardMonitor = pasteboardMonitor
     }
 
     public var body: some View {
@@ -161,21 +165,25 @@ public struct IslandRootView: View {
             Divider()
                 .background(Color.white.opacity(0.12))
 
-            Spacer(minLength: 0)
+            if controller.selectedTab == .clipboard {
+                ClipboardTabView(monitor: pasteboardMonitor)
+            } else {
+                Spacer(minLength: 0)
 
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Project Island — \(controller.selectedTab.rawValue)")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
-                    Text(statusLine)
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Project Island — \(controller.selectedTab.rawValue)")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                        Text(statusLine)
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    Spacer()
                 }
-                Spacer()
-            }
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
+            }
         }
     }
 
