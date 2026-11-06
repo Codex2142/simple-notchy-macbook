@@ -133,13 +133,13 @@
 **Description:** Create `apps/macos/Package.swift` linking the Rust static library, and implement `NotchDetector` and `DisplayDetector` using `NSScreen` safe area and auxiliary top areas to compute hardware notch and virtual island geometry across multi-display setups.
 
 **Acceptance criteria:**
-- [ ] `NotchDetector` accurately computes notch rect on notched Macs and virtual island rect on non-notched displays.
-- [ ] `DisplayDetector` observes screen parameter changes and maps display UUIDs.
-- [ ] Swift unit tests verify geometry math for notched and non-notched screen metrics plus Rust FFI bridge connectivity.
+- [x] `NotchDetector` accurately computes notch rect on notched Macs and virtual island rect on non-notched displays.
+- [x] `DisplayDetector` observes screen parameter changes and maps display UUIDs.
+- [x] Swift unit tests verify geometry math for notched and non-notched screen metrics plus Rust FFI bridge connectivity.
 
 **Verification:**
-- [ ] Tests pass: `swift test --package-path apps/macos`
-- [ ] Build succeeds: `swift build --package-path apps/macos`
+- [x] Tests pass: `./scripts/test-macos.sh`
+- [x] Build succeeds: `swift build --package-path apps/macos`
 
 **Dependencies:** Task 4
 

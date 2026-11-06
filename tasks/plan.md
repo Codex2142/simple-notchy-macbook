@@ -25,7 +25,7 @@ See `tasks/todo.md` for the detailed task breakdown, acceptance criteria, verifi
 
 ### Phase 2: UniFFI Bridge & M1 Dynamic Island Engine (`apps/macos`)
 - [x] Task 4: UniFFI Bridge Crate & Swift Binding Generator (`crates/bridge`)
-- [ ] Task 5: Swift Package & Notch/Display Geometry Detector (`apps/macos`)
+- [x] Task 5: Swift Package & Notch/Display Geometry Detector (`apps/macos`)
 - [ ] Task 6: Floating `IslandPanel`, Hover/Gesture Controllers & 60 FPS Shell UI
 - [ ] Checkpoint 2: End-to-End Dynamic Island Shell
 

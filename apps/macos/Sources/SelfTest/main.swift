@@ -1,0 +1,80 @@
+import Foundation
+import CoreGraphics
+import IslandBridge
+import IslandWindow
+
+@main
+struct IslandSelfTest {
+    static func check(_ condition: @autoclosure () -> Bool, _ message: String, file: String = #fileID, line: Int = #line) {
+        if !condition() {
+            fputs("FAIL [\(file):\(line)]: \(message)\n", stderr)
+            exit(1)
+        }
+    }
+
+    static func main() throws {
+        print("==> Running Project Island macOS Swift + UniFFI Self-Tests...")
+
+        // 1. Notched MacBook Pro 14" geometry test
+        let notchedMetrics = ScreenMetrics(
+            displayUUID: "UUID-MBP-14",
+            displayName: "Built-in Liquid Retina XDR Display",
+            frame: CGRect(x: 0, y: 0, width: 1512, height: 982),
+            safeAreaTop: 37,
+            auxiliaryTopLeftWidth: 664,
+            auxiliaryTopRightWidth: 664
+        )
+        let notchedGeo = NotchDetector.calculateGeometry(for: notchedMetrics)
+        check(notchedGeo.hasHardwareNotch, "Expected hardware notch on MBP 14 metrics")
+        check(notchedGeo.notchRect.width == 184, "Expected notch width 184, got \(notchedGeo.notchRect.width)")
+        check(notchedGeo.notchRect.height == 37, "Expected notch height 37, got \(notchedGeo.notchRect.height)")
+        check(abs(notchedGeo.notchRect.midX - 756) <= 1.0, "Expected top-centered notch midX ~756")
+        check(notchedGeo.notchRect.maxY == 982, "Expected notch flush with top edge 982")
+
+        let expandedRect = notchedGeo.frame(for: .expanded)
+        check(expandedRect.width > notchedGeo.collapsedFrame.width, "Expanded width should exceed collapsed width")
+        check(expandedRect.height > notchedGeo.collapsedFrame.height, "Expanded height should exceed collapsed height")
+
+        // 2. External monitor virtual island geometry test
+        let externalMetrics = ScreenMetrics(
+            displayUUID: "UUID-EXT-27",
+            displayName: "LG UltraFine",
+            frame: CGRect(x: 1512, y: 0, width: 2560, height: 1440),
+            safeAreaTop: 0,
+            auxiliaryTopLeftWidth: nil,
+            auxiliaryTopRightWidth: nil
+        )
+        let extGeo = NotchDetector.calculateGeometry(for: externalMetrics)
+        check(!extGeo.hasHardwareNotch, "External monitor should use virtual island")
+        check(extGeo.collapsedFrame.width == 200, "Expected virtual island width 200")
+        check(extGeo.collapsedFrame.height == 32, "Expected virtual island height 32")
+        check(extGeo.collapsedFrame.maxY == 1440, "Expected virtual island flush with top edge 1440")
+
+        // 3. Swift <-> Rust UniFFI roundtrip test
+        let core = try IslandCore.newInMemory()
+        let initial = try core.currentState()
+        check(initial.mode == .collapsed, "Initial FFI state should be .collapsed")
+
+        let expanded = try core.expand(nowMs: 1_000)
+        check(expanded.mode == .expanded, "Expanded FFI state should be .expanded")
+
+        let pinned = try core.pin(nowMs: 1_100)
+        check(pinned.mode == .pinned, "Pinned FFI state should be .pinned")
+
+        let unpinned = try core.unpin(nowMs: 1_200)
+        check(unpinned.mode == .expanded, "Unpin while interacting should stay .expanded")
+
+        let _ = try core.setInteracting(interacting: false, nowMs: 1_300)
+        let collapsed = try core.tryAutoCollapse(expectedEpoch: nil, nowMs: 1_600)
+        check(collapsed.mode == .collapsed, "Auto-collapse after interaction ends should return to .collapsed")
+
+        // 4. Display profile persistence over UniFFI
+        let profile = ConnectedDisplay(metrics: notchedMetrics, geometry: notchedGeo).toFfiProfile()
+        try core.registerDisplayProfile(profile: profile)
+        let profiles = try core.listDisplayProfiles()
+        check(profiles.count == 1, "Expected 1 persisted display profile")
+        check(profiles.first?.displayUuid == "UUID-MBP-14", "Expected persisted UUID-MBP-14")
+
+        print("==> PASS: All Swift + UniFFI tests succeeded!")
+    }
+}
