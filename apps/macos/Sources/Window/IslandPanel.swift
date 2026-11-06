@@ -21,6 +21,14 @@ public enum WindowLevelManager {
 public final class IslandHostingView<Content: View>: NSHostingView<Content> {
     public var activeHitSize: CGSize = .zero
 
+    override public func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
+    }
+
+    override public var mouseDownCanMoveWindow: Bool {
+        false
+    }
+
     override public func hitTest(_ point: NSPoint) -> NSView? {
         guard activeHitSize.width > 0, activeHitSize.height > 0 else {
             return super.hitTest(point)

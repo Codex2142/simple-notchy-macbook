@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               let pasteboard = try? PasteboardMonitor(core: core),
               let keepAwake = try? KeepAwakeAdapter(core: core),
               let media = try? MediaAdapter(core: core, enableLivePolling: true),
-              let systemMetrics = try? SystemMetricsAdapter(core: core),
+              let systemMetrics = try? SystemMetricsAdapter(core: core, autoStartRefresh: true),
               let notesShelf = try? NotesShelfStore(core: core),
               let settings = try? SettingsStore(core: core)
         else {

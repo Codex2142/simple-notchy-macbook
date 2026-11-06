@@ -60,7 +60,19 @@ cat > "$APP_DIR/Contents/Info.plist" << 'EOF'
 </plist>
 EOF
 
-codesign --force --deep --sign - "$APP_DIR" >/dev/null 2>&1 || true
+ENTITLEMENTS_FILE="/tmp/project-island-entitlements.plist"
+cat > "$ENTITLEMENTS_FILE" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+</dict>
+</plist>
+EOF
+
+codesign --force --deep --entitlements "$ENTITLEMENTS_FILE" --sign - "$APP_DIR" >/dev/null 2>&1 || true
 
 echo "==> Done! App bundle created at: $APP_DIR"
 echo "    Run with: open \"$APP_DIR\""

@@ -14,17 +14,18 @@ public struct MediaPlayerView: View {
             HStack(spacing: 12) {
                 artworkView
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(mediaAdapter.nowPlaying?.title ?? "Spotify Ready")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white)
                             .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         if let source = mediaAdapter.nowPlaying?.sourceApp, !source.isEmpty {
                             Text(source.uppercased())
-                                .font(.system(size: 8, weight: .bold))
-                                .padding(.horizontal, 5)
+                                .font(.system(size: 8.5, weight: .bold))
+                                .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(
                                     Capsule().fill(
@@ -39,19 +40,22 @@ public struct MediaPlayerView: View {
 
                     Text(mediaAdapter.nowPlaying?.artist ?? "Play any song in Spotify to control & view live lyrics")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.72))
+                        .foregroundColor(.white.opacity(0.75))
                         .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Spacer(minLength: 4)
 
-                HStack(spacing: 12) {
+                HStack(spacing: 6) {
                     Button {
                         mediaAdapter.previousTrack()
                     } label: {
                         Image(systemName: "backward.fill")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.85))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help("Previous Track")
@@ -60,8 +64,10 @@ public struct MediaPlayerView: View {
                         mediaAdapter.togglePlayPause()
                     } label: {
                         Image(systemName: mediaAdapter.nowPlaying?.isPlaying == true ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 24, weight: .semibold))
+                            .font(.system(size: 26, weight: .semibold))
                             .foregroundColor(mediaAdapter.nowPlaying?.sourceApp == "Spotify" ? .green : .white)
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help("Play / Pause Spotify")
@@ -70,8 +76,10 @@ public struct MediaPlayerView: View {
                         mediaAdapter.nextTrack()
                     } label: {
                         Image(systemName: "forward.fill")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.85))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help("Next Track")
@@ -82,6 +90,8 @@ public struct MediaPlayerView: View {
                         Image(systemName: mediaAdapter.showLyrics ? "quote.bubble.fill" : "quote.bubble")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(mediaAdapter.showLyrics ? .green : .white.opacity(0.6))
+                            .frame(width: 26, height: 26)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help("Toggle Live Synced Lyrics")
@@ -139,14 +149,13 @@ public struct MediaPlayerView: View {
 
     private func progressBar(for track: FfiNowPlayingTrack) -> some View {
         let totalSecs = Double(max(1, track.durationSecs))
-        let currentSecs = min(totalSecs, Double(track.elapsedMs) / 1000.0)
-        let ratio = CGFloat(max(0.0, min(1.0, currentSecs / totalSecs)))
+        let ratio = CGFloat(max(0.0, min(1.0, mediaAdapter.playbackProgress)))
 
         return HStack(spacing: 8) {
-            Text(Self.formatMmSs(UInt32(currentSecs.rounded(.down))))
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundColor(.white.opacity(0.6))
-                .frame(width: 32, alignment: .leading)
+            Text(Self.formatMmSs(mediaAdapter.liveElapsedSecs))
+                .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                .foregroundColor(.white.opacity(0.65))
+                .frame(width: 34, alignment: .leading)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -167,64 +176,79 @@ public struct MediaPlayerView: View {
                         }
                 )
             }
-            .frame(height: 10)
+            .frame(height: 12)
 
             Text(Self.formatMmSs(track.durationSecs))
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundColor(.white.opacity(0.6))
-                .frame(width: 32, alignment: .trailing)
+                .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                .foregroundColor(.white.opacity(0.65))
+                .frame(width: 34, alignment: .trailing)
         }
     }
 
     @ViewBuilder
     private var liveLyricsSection: some View {
-        VStack(alignment: .center, spacing: 3) {
+        ZStack {
             if let snap = mediaAdapter.lyricsSnapshot, snap.hasSyncedLyrics {
-                if !snap.previousLine.isEmpty {
-                    Text(snap.previousLine)
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(.white.opacity(0.40))
-                        .lineLimit(1)
+                VStack(alignment: .center, spacing: 4) {
+                    if !snap.previousLine.isEmpty {
+                        Text(snap.previousLine)
+                            .font(.system(size: 10.5, weight: .regular))
+                            .foregroundColor(.white.opacity(0.42))
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity)
+                    }
+                    Text(snap.currentLine.isEmpty ? "♪ • • •" : snap.currentLine)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.green)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                    if !snap.nextLine.isEmpty {
+                        Text(snap.nextLine)
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(.white.opacity(0.58))
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity)
+                    }
                 }
-                Text(snap.currentLine.isEmpty ? "♪ • • •" : snap.currentLine)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.green)
-                    .lineLimit(1)
-                    .id(snap.currentIndex)
-                if !snap.nextLine.isEmpty {
-                    Text(snap.nextLine)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white.opacity(0.55))
-                        .lineLimit(1)
-                }
+                .id(snap.currentIndex)
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal: .move(edge: .top).combined(with: .opacity)
+                    )
+                )
             } else if mediaAdapter.isLoadingLyrics {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 10))
                         .foregroundColor(.green)
                     Text("Syncing live lyrics from LRCLIB...")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.system(size: 10.5, weight: .medium))
                         .foregroundColor(.white.opacity(0.65))
                 }
             } else if let track = mediaAdapter.nowPlaying {
                 Text("♪ \(track.title) — \(track.artist)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white.opacity(0.55))
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundColor(.white.opacity(0.6))
                     .lineLimit(1)
             } else {
                 Text("Start playing a track on Spotify to see live synced lyrics here.")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10.5))
                     .foregroundColor(.white.opacity(0.5))
                     .lineLimit(1)
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
+        .animation(.spring(response: 0.30, dampingFraction: 0.84), value: mediaAdapter.lyricsSnapshot?.currentIndex ?? -1)
+        .frame(maxWidth: .infinity, minHeight: 58)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.black.opacity(0.35))
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.black.opacity(0.38))
         )
+        .clipped()
     }
 
     private static func formatMmSs(_ totalSecs: UInt32) -> String {

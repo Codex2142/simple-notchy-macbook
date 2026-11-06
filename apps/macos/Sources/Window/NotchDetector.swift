@@ -53,6 +53,19 @@ public struct NotchGeometry: Equatable, Sendable {
         self.expandedFrame = expandedFrame
     }
 
+    /// Dynamic top safe-area inset required to clear the physical MacBook camera notch.
+    /// Returns `notchRect.height` on notched MacBooks (e.g. MacBook Air M2 / MacBook Pro) and `0` on external displays.
+    public var notchSafeTopInset: CGFloat {
+        hasHardwareNotch ? notchRect.height : 0.0
+    }
+
+    /// Width of each visible horizontal wing flanking the physical notch for a given mode.
+    public func wingWidth(for mode: FfiIslandMode) -> CGFloat {
+        let modeWidth = frame(for: mode).width
+        guard hasHardwareNotch else { return modeWidth / 2.0 }
+        return max(24.0, (modeWidth - notchRect.width) / 2.0)
+    }
+
     /// Returns the target window frame for a given `FfiIslandMode`.
     public func frame(for mode: FfiIslandMode) -> CGRect {
         switch mode {
@@ -109,7 +122,9 @@ public enum NotchDetector {
         }
 
         let topY = frame.maxY
-        let collapsedWidth = hasNotch ? notchWidth + 24.0 : notchWidth
+        // On notched MacBooks, add 56pt wings on both sides of the physical notch so the left circular
+        // Spotify artwork + progress ring and right waveform sit completely outside the camera housing.
+        let collapsedWidth = hasNotch ? notchWidth + 112.0 : notchWidth
         let collapsedHeight = notchHeight
         let collapsedFrame = topCenteredRect(
             in: frame,
@@ -128,19 +143,20 @@ public enum NotchDetector {
         let activityFrame = topCenteredRect(
             in: frame,
             topY: topY,
-            width: collapsedWidth + 110.0,
-            height: max(collapsedHeight, 36.0)
+            width: collapsedWidth + 130.0,
+            height: max(collapsedHeight, 38.0)
         )
 
+        let safeTop = hasNotch ? notchHeight : 0.0
         let peekFrame = topCenteredRect(
             in: frame,
             topY: topY,
-            width: max(collapsedWidth + 160.0, 360.0),
-            height: max(collapsedHeight + 28.0, 62.0)
+            width: max(collapsedWidth + 160.0, 410.0),
+            height: safeTop + 68.0
         )
 
-        let expandedWidth = min(540.0, max(420.0, frame.width * 0.34))
-        let expandedHeight: CGFloat = 270.0
+        let expandedWidth = min(580.0, max(480.0, frame.width * 0.38))
+        let expandedHeight: CGFloat = safeTop + 295.0
         let expandedFrame = topCenteredRect(
             in: frame,
             topY: topY,

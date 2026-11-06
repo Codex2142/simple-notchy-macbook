@@ -60,3 +60,12 @@ See `tasks/todo.md` for the detailed task breakdown, acceptance criteria, verifi
 - **Task 17:** Full Spotify Integration & Live Synced Lyrics UI (`MediaAdapter.swift`, `MediaPlayerView.swift`, `IslandRootView.swift`)
 - **Task 18:** `.app` Bundle Packaging Script (`scripts/package-app.sh`) & SelfTest Verification (`apps/macos/Sources/SelfTest/main.swift`)
 
+## 5. Phase 6 Bug Fix & MacBook Air M2 Polish Tasks (Tasks 19–24)
+- **Task 19 (Priority 1):** Reliable Spotify Playback Control (`acceptsFirstMouse`, async `NSAppleScript` + `osascript` + `MediaRemote` fallback, Spotify oEmbed artwork, AppleEvents entitlements)
+- **Task 20 (Priority 2 & 3):** MacBook Air M2 Hardware Notch Safe-Area Layout & Vertical Text Clipping Fix (`NotchDetector.swift`, `IslandRootView.swift`, feature views)
+- **Task 21 (Priority 4):** High-Precision Lyric Timestamp Synchronization (`50ms` monotonic anchor + IPC compensation) & Smooth Slide/Fade Animation (`MediaAdapter.swift`, `MediaPlayerView.swift`)
+- **Task 22 (Priority 5):** Automatic 2-Second System Telemetry Refresh with CPU/RAM/Battery/Disk (`SystemMetricsAdapter.swift`, `SystemMetricsView.swift`)
+- **Task 23 (Priority 6):** Collapsed Island Circular Spotify Artwork & Progressive Circular Playback Border (`IslandRootView.swift`, `MediaAdapter.swift`)
+- **Task 24:** End-to-End Verification, Self-Tests & `.app` Bundle Packaging (`SelfTest/main.swift`, `scripts/package-app.sh`)
+
+

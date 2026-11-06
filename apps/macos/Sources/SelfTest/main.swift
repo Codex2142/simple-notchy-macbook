@@ -54,6 +54,27 @@ struct IslandSelfTest {
         check(extGeo.collapsedFrame.height == 32, "Expected virtual island height 32")
         check(extGeo.collapsedFrame.maxY == 1440, "Expected virtual island flush with top edge 1440")
 
+        // 2b. MacBook Air M2 notch-safe layout
+        check(notchedGeo.notchSafeTopInset == 37, "Notched display must expose notchSafeTopInset == notch height")
+        check(extGeo.notchSafeTopInset == 0, "External display must have zero notch inset")
+        check(
+            notchedGeo.expandedFrame.height >= notchedGeo.notchSafeTopInset + 280,
+            "Expanded panel must leave >=280pt of content below the physical notch"
+        )
+        check(
+            notchedGeo.wingWidth(for: .collapsed) >= 48,
+            "Collapsed wings must be wide enough for artwork ring beside the physical notch"
+        )
+        check(
+            notchedGeo.collapsedFrame.width >= notchedGeo.notchRect.width + 2 * 48,
+            "Collapsed pill must extend beyond the notch cutout on both sides"
+        )
+
+        // 2c. Playback progress math for circular ring
+        check(MediaAdapter.computeProgress(elapsedMs: 60_000, durationSecs: 240) == 0.25, "Progress 60s/240s == 0.25")
+        check(MediaAdapter.computeProgress(elapsedMs: 999_999, durationSecs: 100) == 1.0, "Progress clamps to 1.0")
+        check(MediaAdapter.computeProgress(elapsedMs: 5_000, durationSecs: 0) == 0.0, "Zero duration yields 0 progress")
+
         // 3. Swift <-> Rust UniFFI roundtrip test
         let core = try IslandCore.newInMemory()
         let initial = try core.currentState()
@@ -244,6 +265,14 @@ struct IslandSelfTest {
         let sysMetrics = try SystemMetricsAdapter(core: controllerCore)
         check(sysMetrics.telemetry.memoryTotalGb >= 1.0, "Host physical memory total >= 1GB")
         check(sysMetrics.telemetry.batteryPercent <= 100, "Battery percentage within 0..100")
+        _ = try sysMetrics.sampleHostMetrics()
+        check(sysMetrics.telemetry.cpuUsagePercent >= 0 && sysMetrics.telemetry.cpuUsagePercent <= 100, "CPU within 0..100")
+        check(sysMetrics.diskTotalGb > 0 && sysMetrics.diskUsedGb <= sysMetrics.diskTotalGb, "Disk metrics sane")
+
+        // Auto-refresh every 2s without manual interaction
+        sysMetrics.startMonitoring(intervalSeconds: 0.5)
+        try await Task.sleep(nanoseconds: 1_200_000_000)
+        sysMetrics.stopMonitoring()
 
         let volPeekState = try sysMetrics.reportVolumeChange(volumePercent: 65, isMuted: false, nowMs: 6_000)
         check(volPeekState.mode == .peek, "Volume change triggers HUD .peek mode")

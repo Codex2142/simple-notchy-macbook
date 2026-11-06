@@ -486,3 +486,88 @@
 - `/Users/akbarsadat/.gemini/antigravity/brain/0abeea8a-6d04-4d43-8680-a0dc159290d1/walkthrough.md`
 
 **Estimated scope:** Medium (4 files)
+
+---
+
+## Task 19: Reliable Spotify Playback Integration (`IslandPanel.swift`, `MediaAdapter.swift`, `scripts/package-app.sh`)
+
+**Description:** Fix Spotify playback buttons (`Play/Pause`, `Previous`, `Next`, `Seek`) by enabling `acceptsFirstMouse(for:)` on `IslandHostingView`, executing Spotify commands via `NSAppleScript` + `/usr/bin/osascript` + `MediaRemote.framework` (`MRMediaRemoteSendCommand`) fallback, resolving Spotify track artwork from both AppleScript and Spotify oEmbed (`Track ID`), and signing the `.app` bundle with `com.apple.security.automation.apple-events`.
+
+**Acceptance criteria:**
+- [ ] Clicking Play/Pause, Previous, or Next inside the non-activating Island panel registers immediately on first click and controls Spotify.
+- [ ] UI state (`isPlaying`, `title`, `artist`, `artworkUrl`, `elapsedMs`) updates immediately after any command and stays in sync with Spotify.
+
+**Verification:**
+- [ ] Tests pass: `./scripts/test-macos.sh`
+
+**Dependencies:** Task 18
+
+---
+
+## Task 20: MacBook Air M2 Notch-Aware Layout & Text Clipping Fix (`NotchDetector.swift`, `IslandRootView.swift`, `Features/*`)
+
+**Description:** Dynamically compute `notchSafeTopInset` from `ScreenMetrics` so the physical MacBook Air M2 camera notch is never overlapped by interactive tabs (`Overview`, `Clipboard`, `Timer`, `Notes`, `Shelf`, `System`) or text in Collapsed, Activity, Peek, or Expanded modes. Fix vertical text clipping across all modes.
+
+**Acceptance criteria:**
+- [ ] In Expanded/Pinned mode, all tabs (`Overview` through `System`) sit below `notchSafeTopInset` (with a flanking header beside the physical notch) so nothing is hidden behind the MacBook Air M2 notch.
+- [ ] In Collapsed and Activity modes, left and right wings flank `notchRect.width` cleanly without placing text behind the center camera cutout.
+- [ ] No text is vertically clipped by 30% in Peek, Collapsed, or Expanded modes.
+
+**Verification:**
+- [ ] Tests pass: `./scripts/test-macos.sh`
+
+**Dependencies:** Task 19
+
+---
+
+## Task 21: High-Precision Lyric Timestamp Sync & Smooth Slide/Fade Animation (`MediaAdapter.swift`, `MediaPlayerView.swift`)
+
+**Description:** Replace coarse 250ms wall-clock stepping with a high-precision monotonic playback anchor (`lastAnchorElapsedMs` + `lastAnchorWallMs` + `120ms` IPC latency compensation) evaluated at `50ms` (20 Hz), and add smooth vertical slide + fade transitions between lyric lines in `MediaPlayerView.swift`.
+
+**Acceptance criteria:**
+- [ ] Lyrics transition at the exact LRC timestamp synchronized with Spotify playback position without noticeable delay.
+- [ ] Line transitions animate smoothly (vertical slide + opacity fade) without flickering or blocking subsequent lyric updates.
+
+**Verification:**
+- [ ] Tests pass: `./scripts/test-macos.sh`
+
+**Dependencies:** Task 20
+
+---
+
+## Task 22: Automatic 2-Second System Telemetry Refresh (`SystemMetricsAdapter.swift`, `SystemMetricsView.swift`, `ProjectIslandApp.swift`)
+
+**Description:** Add automatic 2-second telemetry refresh in `SystemMetricsAdapter` sampling CPU usage (`HOST_CPU_LOAD_INFO` delta ticks), RAM (`HOST_VM_INFO64`), Battery (`IOPSCopyPowerSourcesInfo`), and Disk usage (`attributesOfFileSystem`), and update `SystemMetricsView` to display live auto-refreshed metrics without manual refresh buttons.
+
+**Acceptance criteria:**
+- [ ] Telemetry automatically updates every 2 seconds without manual button clicks.
+- [ ] CPU, RAM, Battery, and Disk metrics are displayed cleanly and pause when the app is hidden.
+
+**Verification:**
+- [ ] Tests pass: `./scripts/test-macos.sh`
+
+**Dependencies:** Task 21
+
+---
+
+## Task 23: Collapsed Island Circular Spotify Artwork & Progressive Circular Playback Border (`IslandRootView.swift`, `MediaAdapter.swift`)
+
+**Description:** Render Spotify album artwork as a circular thumbnail on the left wing of the collapsed Island with a progressive circular border (`Circle().trim(from: 0, to: playbackProgress)`) that advances smoothly in proportion to `elapsedMs / durationMs`, pauses when playback is paused, and resets on track change.
+
+**Acceptance criteria:**
+- [ ] Circular Spotify artwork is visible on the left side of the collapsed Island.
+- [ ] Circular progress ring accurately reflects `elapsedMs / durationMs`, stops when paused, and resets on new tracks.
+
+**Verification:**
+- [ ] Tests pass: `./scripts/test-macos.sh`
+
+**Dependencies:** Task 22
+
+---
+
+## Task 24: End-to-End Verification & `.app` Bundle Packaging (`SelfTest/main.swift`, `scripts/package-app.sh`)
+
+**Description:** Add automated verification for MacBook Air M2 notch safe-area layout, telemetry auto-refresh, playback progress calculation, and lyric sync in `SelfTest/main.swift`, then build and package `build/Project Island.app`.
+
+**Acceptance criteria:**
+- [ ] `cargo test --workspace --offline`, `cargo clippy --workspace --all-targets --offline -- -D warnings`, `./scripts/test-macos.sh`, and `./scripts/package-app.sh` pass 100%.
