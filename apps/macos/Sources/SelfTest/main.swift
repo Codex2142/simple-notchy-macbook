@@ -199,8 +199,38 @@ struct IslandSelfTest {
         try pasteboard.deleteItem(captured)
         check(pasteboard.items.isEmpty, "Deleted clipboard item")
 
+        // Clipboard: Delete All / Clear History test
+        pasteboard.searchQuery = ""
+        try pasteboard.captureCandidate(text: "item-alpha", sourceApp: "Notes", pasteboardTypes: ["public.utf8-plain-text"])
+        try pasteboard.captureCandidate(text: "item-beta", sourceApp: "Safari", pasteboardTypes: ["public.utf8-plain-text"])
+        check(pasteboard.items.count == 2, "Captured 2 items for clear all test")
+        let cleared = pasteboard.clearAllHistory()
+        check(cleared, "Clear all history returned true")
+        check(pasteboard.items.isEmpty, "Clipboard items empty after clearAllHistory")
+
         // 8. Task 10: Timer, Pomodoro & KeepAwake Live Activity tests
         let keepAwake = try KeepAwakeAdapter(core: controllerCore)
+
+        // Custom timer stepper tests
+        keepAwake.customHours = 0
+        keepAwake.incrementHours()
+        check(keepAwake.customHours == 1, "Stepper incremented hours to 1")
+        keepAwake.decrementHours()
+        check(keepAwake.customHours == 0, "Stepper decremented hours to 0")
+        keepAwake.decrementHours()
+        check(keepAwake.customHours == 0, "Hours cannot be negative")
+
+        keepAwake.customMinutes = 59
+        keepAwake.incrementMinutes()
+        check(keepAwake.customMinutes == 59, "Minutes clamped to 59")
+        keepAwake.decrementMinutes()
+        check(keepAwake.customMinutes == 58, "Minutes decremented to 58")
+
+        keepAwake.customSeconds = 0
+        keepAwake.decrementSeconds()
+        check(keepAwake.customSeconds == 0, "Seconds cannot be negative")
+        keepAwake.incrementSeconds()
+        check(keepAwake.customSeconds == 1, "Seconds incremented to 1")
 
         // Custom timer input validation tests
         let zeroRejected = keepAwake.startCustomTimer(hours: 0, minutes: 0, seconds: 0)

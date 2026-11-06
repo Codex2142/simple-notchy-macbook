@@ -243,6 +243,10 @@ impl AppCoordinator {
         self.storage.clipboard_repo().delete(item_id)
     }
 
+    pub fn clear_clipboard_history(&self) -> IslandResult<usize> {
+        self.storage.clipboard_repo().clear_all()
+    }
+
     pub fn prune_expired_clipboard(&self, now_secs: i64) -> IslandResult<usize> {
         let retention = self.get_retention_policy()?;
         self.storage

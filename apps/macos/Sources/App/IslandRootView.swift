@@ -40,7 +40,7 @@ public struct IslandRootView: View {
                 contentForMode
 
                 // Subtle bottom progress bar for active timer when Island is not hovered / not expanded
-                if !isExpandedLike && (keepAwakeAdapter.timerState == .running || keepAwakeAdapter.timerState == .paused || keepAwakeAdapter.timerState == .completed) {
+                if !isExpandedLike && isTimerActive {
                     collapsedTimerProgressBar
                 }
             }
@@ -84,6 +84,10 @@ public struct IslandRootView: View {
         controller.viewState.mode == .expanded || controller.viewState.mode == .pinned
     }
 
+    private var isTimerActive: Bool {
+        keepAwakeAdapter.timerState == .running || keepAwakeAdapter.timerState == .paused || keepAwakeAdapter.timerState == .completed
+    }
+
     private var hasHardwareNotch: Bool {
         controller.activeGeometry?.hasHardwareNotch ?? true
     }
@@ -100,6 +104,12 @@ public struct IslandRootView: View {
     }
 
     private var activePillSize: CGSize {
+        if isTimerActive && !isExpandedLike {
+            if let geometry = controller.activeGeometry {
+                return geometry.frame(for: .collapsed).size
+            }
+            return CGSize(width: 296, height: 37)
+        }
         if let geometry = controller.activeGeometry {
             return geometry.frame(for: controller.viewState.mode).size
         }
@@ -118,6 +128,9 @@ public struct IslandRootView: View {
     }
 
     private var cornerRadius: CGFloat {
+        if isTimerActive && !isExpandedLike {
+            return 18
+        }
         switch controller.viewState.mode {
         case .hidden:
             return 2
@@ -135,18 +148,27 @@ public struct IslandRootView: View {
         switch controller.viewState.mode {
         case .hidden:
             EmptyView()
-        case .collapsed:
-            collapsedBar
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    controller.toggleExpandedOrPinned()
-                }
-        case .activity:
-            activityBar
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    controller.toggleExpandedOrPinned()
-                }
+        case .collapsed, .activity:
+            if isTimerActive {
+                Color.clear
+                    .frame(width: activePillSize.width, height: activePillSize.height)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        controller.toggleExpandedOrPinned()
+                    }
+            } else if controller.viewState.mode == .activity {
+                activityBar
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        controller.toggleExpandedOrPinned()
+                    }
+            } else {
+                collapsedBar
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        controller.toggleExpandedOrPinned()
+                    }
+            }
         case .peek:
             peekBar
                 .contentShape(Rectangle())
@@ -160,42 +182,50 @@ public struct IslandRootView: View {
 
     // MARK: - Collapsed Island (Circular Spotify Artwork + Progressive Border outside Hardware Notch)
 
+    @ViewBuilder
     private var collapsedBar: some View {
-        let wingWidth = controller.activeGeometry?.wingWidth(for: .collapsed) ?? 56.0
-        return HStack(spacing: 0) {
-            // Left Wing (completely to the left of the physical MacBook Air M2 notch)
-            HStack(spacing: 6) {
-                collapsedCircularArtworkWithProgress
-                Spacer(minLength: 0)
-            }
-            .padding(.leading, 10)
-            .frame(width: wingWidth, height: activePillSize.height, alignment: .leading)
+        if isTimerActive {
+            // When timer is active: prioritize timer by hiding Spotify information completely.
+            // Only the bottom timer progress bar is displayed on the notch.
+            Color.clear
+                .frame(width: activePillSize.width, height: activePillSize.height)
+        } else {
+            let wingWidth = controller.activeGeometry?.wingWidth(for: .collapsed) ?? 56.0
+            HStack(spacing: 0) {
+                // Left Wing (completely to the left of the physical MacBook Air M2 notch)
+                HStack(spacing: 6) {
+                    collapsedCircularArtworkWithProgress
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, 10)
+                .frame(width: wingWidth, height: activePillSize.height, alignment: .leading)
 
-            // Center Hardware Notch Cutout Clearance
-            if hasHardwareNotch {
-                Spacer(minLength: 0)
-                    .frame(width: notchCutoutWidth)
-            } else if let track = mediaAdapter.nowPlaying, track.isPlaying {
-                Text(track.title)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity)
-            } else {
-                Spacer(minLength: 0)
-            }
+                // Center Hardware Notch Cutout Clearance
+                if hasHardwareNotch {
+                    Spacer(minLength: 0)
+                        .frame(width: notchCutoutWidth)
+                } else if let track = mediaAdapter.nowPlaying, track.isPlaying {
+                    Text(track.title)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Spacer(minLength: 0)
+                }
 
-            // Right Wing (completely to the right of the physical MacBook Air M2 notch)
-            HStack(spacing: 4) {
-                Spacer(minLength: 0)
-                Image(systemName: mediaAdapter.nowPlaying?.isPlaying == true ? "waveform.circle.fill" : "waveform")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(mediaAdapter.nowPlaying?.isPlaying == true ? .green : .white.opacity(0.75))
+                // Right Wing (completely to the right of the physical MacBook Air M2 notch)
+                HStack(spacing: 4) {
+                    Spacer(minLength: 0)
+                    Image(systemName: mediaAdapter.nowPlaying?.isPlaying == true ? "waveform.circle.fill" : "waveform")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(mediaAdapter.nowPlaying?.isPlaying == true ? .green : .white.opacity(0.75))
+                }
+                .padding(.trailing, 10)
+                .frame(width: wingWidth, height: activePillSize.height, alignment: .trailing)
             }
-            .padding(.trailing, 10)
-            .frame(width: wingWidth, height: activePillSize.height, alignment: .trailing)
+            .frame(width: activePillSize.width, height: activePillSize.height)
         }
-        .frame(width: activePillSize.width, height: activePillSize.height)
     }
 
     /// Circular Spotify album artwork thumbnail surrounded by a smooth progressive circular playback border.

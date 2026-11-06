@@ -10,7 +10,8 @@ import IslandBridge
 public final class PasteboardMonitor: ObservableObject {
     @Published public private(set) var items: [FfiClipboardItem] = []
     @Published public var searchQuery: String = ""
-    @Published public private(set) var copiedItemId: Int64? = nil
+    @Published public private(set) var copiedItemId: Int64?
+    @Published public var showingDeleteAllConfirmation: Bool = false
 
     private let core: IslandCore
     private var lastChangeCount: Int
@@ -100,6 +101,17 @@ public final class PasteboardMonitor: ObservableObject {
     public func deleteItem(_ item: FfiClipboardItem) throws {
         try core.deleteClipboardItem(itemId: item.id)
         try refreshItems()
+    }
+
+    @discardableResult
+    public func clearAllHistory() -> Bool {
+        do {
+            _ = try core.clearClipboardHistory()
+            try refreshItems()
+            return true
+        } catch {
+            return false
+        }
     }
 
     @discardableResult

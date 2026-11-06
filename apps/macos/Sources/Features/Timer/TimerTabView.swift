@@ -52,40 +52,54 @@ public struct TimerTabView: View {
                 Spacer()
             }
 
-            // Custom HH:MM:SS Input Card
-            HStack(spacing: 8) {
-                Text("Custom Duration:")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.7))
+            // Custom HH:MM:SS Stepper Input Card
+            HStack(spacing: 10) {
+                Text("Custom:")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.75))
 
-                HStack(spacing: 4) {
-                    timeInputField(title: "HH", value: Binding(
-                        get: { String(format: "%02d", adapter.customHours) },
-                        set: { if let v = Int($0), v >= 0, v < 100 { adapter.customHours = v } }
-                    ), max: 99)
-
-                    Text(":")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.6))
-
-                    timeInputField(title: "MM", value: Binding(
-                        get: { String(format: "%02d", adapter.customMinutes) },
-                        set: { if let v = Int($0), v >= 0, v < 60 { adapter.customMinutes = v } }
-                    ), max: 59)
+                HStack(spacing: 6) {
+                    timeStepperBlock(
+                        title: "HOURS",
+                        value: adapter.customHours,
+                        onDecrement: { adapter.decrementHours() },
+                        onIncrement: { adapter.incrementHours(max: 23) },
+                        canDecrement: isStepperEnabled && adapter.customHours > 0,
+                        canIncrement: isStepperEnabled && adapter.customHours < 23
+                    )
 
                     Text(":")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.4))
+                        .padding(.bottom, 12)
 
-                    timeInputField(title: "SS", value: Binding(
-                        get: { String(format: "%02d", adapter.customSeconds) },
-                        set: { if let v = Int($0), v >= 0, v < 60 { adapter.customSeconds = v } }
-                    ), max: 59)
+                    timeStepperBlock(
+                        title: "MINUTES",
+                        value: adapter.customMinutes,
+                        onDecrement: { adapter.decrementMinutes() },
+                        onIncrement: { adapter.incrementMinutes() },
+                        canDecrement: isStepperEnabled && adapter.customMinutes > 0,
+                        canIncrement: isStepperEnabled && adapter.customMinutes < 59
+                    )
+
+                    Text(":")
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.4))
+                        .padding(.bottom, 12)
+
+                    timeStepperBlock(
+                        title: "SECONDS",
+                        value: adapter.customSeconds,
+                        onDecrement: { adapter.decrementSeconds() },
+                        onIncrement: { adapter.incrementSeconds() },
+                        canDecrement: isStepperEnabled && adapter.customSeconds > 0,
+                        canIncrement: isStepperEnabled && adapter.customSeconds < 59
+                    )
                 }
 
                 Spacer()
 
-                // Start button for custom input (enabled only if duration > 0)
+                // Start button for custom input (enabled only if duration > 0 and not running)
                 Button {
                     adapter.startCustomTimer(
                         hours: adapter.customHours,
@@ -101,14 +115,14 @@ public struct TimerTabView: View {
                             .font(.system(size: 11, weight: .semibold))
                     }
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 5)
                     .background(
-                        Capsule().fill(isValidCustomDuration ? Color.green : Color.gray.opacity(0.3))
+                        Capsule().fill(canStartCustomTimer ? Color.green : Color.gray.opacity(0.3))
                     )
-                    .foregroundColor(isValidCustomDuration ? .black : .white.opacity(0.4))
+                    .foregroundColor(canStartCustomTimer ? .black : .white.opacity(0.4))
                 }
                 .buttonStyle(.plain)
-                .disabled(!isValidCustomDuration)
+                .disabled(!canStartCustomTimer)
             }
             .padding(8)
             .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.05)))
@@ -130,6 +144,14 @@ public struct TimerTabView: View {
 
     private var isValidCustomDuration: Bool {
         (adapter.customHours * 3600 + adapter.customMinutes * 60 + adapter.customSeconds) > 0
+    }
+
+    private var isStepperEnabled: Bool {
+        adapter.timerState != .running && adapter.timerState != .paused
+    }
+
+    private var canStartCustomTimer: Bool {
+        isStepperEnabled && isValidCustomDuration
     }
 
     private var activeTimerCard: some View {
@@ -227,15 +249,52 @@ public struct TimerTabView: View {
         }
     }
 
-    private func timeInputField(title: String, value: Binding<String>, max: Int) -> some View {
-        TextField(title, text: value)
-            .textFieldStyle(.plain)
-            .font(.system(size: 12, weight: .bold, design: .monospaced))
-            .foregroundColor(.white)
-            .multilineTextAlignment(.center)
-            .frame(width: 26)
-            .padding(.horizontal, 4)
-            .padding(.vertical, 2)
-            .background(RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.1)))
+    private func timeStepperBlock(
+        title: String,
+        value: Int,
+        onDecrement: @escaping () -> Void,
+        onIncrement: @escaping () -> Void,
+        canDecrement: Bool,
+        canIncrement: Bool
+    ) -> some View {
+        VStack(spacing: 3) {
+            HStack(spacing: 5) {
+                Button {
+                    onDecrement()
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: 9, weight: .bold))
+                        .frame(width: 18, height: 18)
+                        .background(Circle().fill(canDecrement ? Color.white.opacity(0.14) : Color.white.opacity(0.04)))
+                        .foregroundColor(canDecrement ? .white : .white.opacity(0.2))
+                }
+                .buttonStyle(.plain)
+                .disabled(!canDecrement)
+
+                Text(String(format: "%02d", value))
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .frame(width: 24, alignment: .center)
+
+                Button {
+                    onIncrement()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 9, weight: .bold))
+                        .frame(width: 18, height: 18)
+                        .background(Circle().fill(canIncrement ? Color.white.opacity(0.14) : Color.white.opacity(0.04)))
+                        .foregroundColor(canIncrement ? .white : .white.opacity(0.2))
+                }
+                .buttonStyle(.plain)
+                .disabled(!canIncrement)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.07)))
+
+            Text(title)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(.white.opacity(0.5))
+        }
     }
 }

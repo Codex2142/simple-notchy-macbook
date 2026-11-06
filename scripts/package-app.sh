@@ -8,14 +8,29 @@ export TMPDIR="/tmp"
 export CLANG_MODULE_CACHE_PATH="/tmp/clang-module-cache"
 export SWIFTPM_MODULECACHE_OVERRIDE="/tmp/swiftpm-module-cache"
 
-echo "==> [1/3] Building Rust core & generating Swift UniFFI bindings..."
-./scripts/build-rust-macos.sh
+BUILD_CONFIG="debug"
+SWIFT_CONFIG_FLAG=()
+BUILD_SUBDIR="debug"
 
-echo "==> [2/3] Compiling ProjectIslandApp executable..."
+if [ "${1:-}" = "--release" ]; then
+    BUILD_CONFIG="release"
+    SWIFT_CONFIG_FLAG=(-c release)
+    BUILD_SUBDIR="release"
+fi
+
+echo "==> [1/3] Building Rust core ($BUILD_CONFIG) & generating Swift UniFFI bindings..."
+if [ "$BUILD_CONFIG" = "release" ]; then
+    ./scripts/build-rust-macos.sh --release
+else
+    ./scripts/build-rust-macos.sh
+fi
+
+echo "==> [2/3] Compiling ProjectIslandApp executable ($BUILD_CONFIG)..."
 swift build --disable-sandbox \
     --package-path "$ROOT_DIR/apps/macos" \
     --cache-path /tmp/swiftpm-cache \
     --scratch-path /tmp/swiftpm-build \
+    "${SWIFT_CONFIG_FLAG[@]}" \
     -Xcc -fmodules-cache-path=/tmp/clang-module-cache \
     -Xswiftc -module-cache-path -Xswiftc /tmp/clang-module-cache \
     --product ProjectIslandApp
@@ -26,12 +41,12 @@ rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS"
 mkdir -p "$APP_DIR/Contents/Resources"
 
-cp /tmp/swiftpm-build/debug/ProjectIslandApp "$APP_DIR/Contents/MacOS/ProjectIslandApp"
+cp "/tmp/swiftpm-build/$BUILD_SUBDIR/ProjectIslandApp" "$APP_DIR/Contents/MacOS/ProjectIslandApp"
 chmod +x "$APP_DIR/Contents/MacOS/ProjectIslandApp"
 
 # Bundle the Rust bridge dylib inside the .app so it no longer depends on the repo location.
 mkdir -p "$APP_DIR/Contents/Frameworks"
-cp "$ROOT_DIR/target/debug/libisland_bridge.dylib" "$APP_DIR/Contents/Frameworks/libisland_bridge.dylib"
+cp "$ROOT_DIR/target/$BUILD_CONFIG/libisland_bridge.dylib" "$APP_DIR/Contents/Frameworks/libisland_bridge.dylib"
 OLD_DYLIB_PATH="$(otool -L "$APP_DIR/Contents/MacOS/ProjectIslandApp" | awk '/libisland_bridge.dylib/ {print $1}' | head -n 1)"
 install_name_tool -id "@rpath/libisland_bridge.dylib" "$APP_DIR/Contents/Frameworks/libisland_bridge.dylib"
 if [ -n "$OLD_DYLIB_PATH" ]; then

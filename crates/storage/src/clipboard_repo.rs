@@ -28,6 +28,7 @@ pub trait ClipboardRepository {
     fn set_pinned(&self, item_id: i64, pinned: bool) -> IslandResult<()>;
     fn delete(&self, item_id: i64) -> IslandResult<()>;
     fn prune_expired(&self, retention_days: u32, now_secs: i64) -> IslandResult<usize>;
+    fn clear_all(&self) -> IslandResult<usize>;
 }
 
 pub struct SqliteClipboardRepo {
@@ -188,6 +189,17 @@ impl ClipboardRepository for SqliteClipboardRepo {
                        AND id NOT IN (SELECT item_id FROM clipboard_pins)",
                     params![cutoff],
                 )
+                .map_err(map_sql_err)?;
+            Ok(deleted)
+        })
+    }
+
+    fn clear_all(&self) -> IslandResult<usize> {
+        self.storage.with_conn(|conn| {
+            conn.execute("DELETE FROM clipboard_pins", [])
+                .map_err(map_sql_err)?;
+            let deleted = conn
+                .execute("DELETE FROM clipboard_items", [])
                 .map_err(map_sql_err)?;
             Ok(deleted)
         })

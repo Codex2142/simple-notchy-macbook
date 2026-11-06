@@ -6,16 +6,23 @@ cd "$ROOT_DIR"
 
 export PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
 
-echo "==> Building island-bridge (debug staticlib + cdylib)..."
-cargo build --offline -p island-bridge
+BUILD_MODE="debug"
+CARGO_FLAGS=()
+if [ "${1:-}" = "--release" ]; then
+    BUILD_MODE="release"
+    CARGO_FLAGS=(--release)
+fi
+
+echo "==> Building island-bridge ($BUILD_MODE staticlib + cdylib)..."
+cargo build --offline -p island-bridge "${CARGO_FLAGS[@]}"
 
 OUT_SWIFT_DIR="$ROOT_DIR/apps/macos/Sources/Bridge/Generated"
 OUT_C_DIR="$ROOT_DIR/apps/macos/Sources/CIslandBridge/include"
 mkdir -p "$OUT_SWIFT_DIR" "$OUT_C_DIR"
 
 echo "==> Generating Swift UniFFI bindings..."
-cargo run --offline -p island-bridge --bin uniffi-bindgen -- generate \
-    --library "$ROOT_DIR/target/debug/libisland_bridge.dylib" \
+cargo run --offline -p island-bridge "${CARGO_FLAGS[@]}" --bin uniffi-bindgen -- generate \
+    --library "$ROOT_DIR/target/$BUILD_MODE/libisland_bridge.dylib" \
     --metadata-no-deps \
     --no-format \
     --language swift \

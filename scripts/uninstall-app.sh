@@ -10,6 +10,7 @@ pkill -f "Project Island.app/Contents/MacOS/ProjectIslandApp" 2>/dev/null || tru
 launchctl bootout "gui/$(id -u)" "$PLIST_PATH" 2>/dev/null || true
 rm -f "$PLIST_PATH"
 rm -rf "$HOME/Applications/Project Island.app"
+rm -rf "/Applications/Project Island.app" 2>/dev/null || true
 
 if [ "${1:-}" = "--purge-data" ]; then
     rm -rf "$HOME/Library/Application Support/ProjectIsland"

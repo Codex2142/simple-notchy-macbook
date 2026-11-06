@@ -12,33 +12,58 @@ public struct ClipboardTabView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.6))
-                TextField("Search clipboard history...", text: Binding(
-                    get: { monitor.searchQuery },
-                    set: { newValue in
-                        monitor.searchQuery = newValue
-                        try? monitor.refreshItems()
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.6))
+                    TextField("Search clipboard history...", text: Binding(
+                        get: { monitor.searchQuery },
+                        set: { newValue in
+                            monitor.searchQuery = newValue
+                            try? monitor.refreshItems()
+                        }
+                    ))
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                    .foregroundColor(.white)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
+
+                Button {
+                    monitor.showingDeleteAllConfirmation = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("Delete All")
+                            .font(.system(size: 10.5, weight: .semibold))
                     }
-                ))
-                .textFieldStyle(.plain)
-                .font(.system(size: 12))
-                .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(monitor.items.isEmpty ? Color.white.opacity(0.05) : Color.red.opacity(0.2)))
+                    .foregroundColor(monitor.items.isEmpty ? .white.opacity(0.3) : .red.opacity(0.9))
+                }
+                .buttonStyle(.plain)
+                .disabled(monitor.items.isEmpty)
+                .help("Delete all clipboard history")
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
 
             if monitor.items.isEmpty {
                 Spacer()
-                HStack {
-                    Spacer()
-                    Text("No clipboard items found")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.5))
-                    Spacer()
+                VStack(spacing: 6) {
+                    Image(systemName: "clipboard")
+                        .font(.system(size: 24))
+                        .foregroundColor(.white.opacity(0.3))
+                    Text("No clipboard items")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("Copied texts will automatically appear here")
+                        .font(.system(size: 10.5))
+                        .foregroundColor(.white.opacity(0.4))
                 }
+                .frame(maxWidth: .infinity)
                 Spacer()
             } else {
                 ScrollView {
@@ -119,6 +144,16 @@ public struct ClipboardTabView: View {
                     .animation(.easeInOut(duration: 0.2), value: monitor.copiedItemId)
                 }
             }
+        }
+        .alert(isPresented: $monitor.showingDeleteAllConfirmation) {
+            Alert(
+                title: Text("Delete All Clipboard History?"),
+                message: Text("This will permanently remove all saved clipboard items from Project Island. System pasteboard contents will not be affected."),
+                primaryButton: .destructive(Text("Delete All")) {
+                    _ = monitor.clearAllHistory()
+                },
+                secondaryButton: .cancel()
+            )
         }
     }
 }

@@ -41,9 +41,15 @@ cargo test --workspace
 
 ## Install & Run
 
-See the full step-by-step guide (clone, build, install, launch at login, permissions, troubleshooting): [docs/USER_MANUAL.md](docs/USER_MANUAL.md)
+See the comprehensive installation and `/Applications` guide: [docs/INSTALLATION.md](docs/INSTALLATION.md) and [docs/USER_MANUAL.md](docs/USER_MANUAL.md).
 
 ```bash
-./scripts/install-app.sh      # build + install to ~/Applications + launch at login
-./scripts/uninstall-app.sh    # remove
+# Package a standalone release .app bundle
+./scripts/package-app.sh --release
+
+# Install to /Applications and register launch-at-login
+./scripts/install-app.sh --release
+
+# Uninstall
+./scripts/uninstall-app.sh
 ```

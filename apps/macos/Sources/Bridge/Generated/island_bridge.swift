@@ -559,6 +559,8 @@ public protocol IslandCoreProtocol : AnyObject {
     
     func clearActivity(nowMs: UInt64) throws  -> FfiIslandViewState
     
+    func clearClipboardHistory() throws  -> UInt64
+    
     func clearShelf() throws 
     
     func currentNowPlaying() throws  -> FfiNowPlayingTrack?
@@ -740,6 +742,13 @@ open func clearActivity(nowMs: UInt64)throws  -> FfiIslandViewState {
     return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_clear_activity(self.uniffiClonePointer(),
         FfiConverterUInt64.lower(nowMs),$0
+    )
+})
+}
+    
+open func clearClipboardHistory()throws  -> UInt64 {
+    return try  FfiConverterUInt64.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_clear_clipboard_history(self.uniffiClonePointer(),$0
     )
 })
 }
@@ -3113,6 +3122,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_clear_activity() != 57580) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_clear_clipboard_history() != 50082) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_clear_shelf() != 29482) {

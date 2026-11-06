@@ -27,6 +27,50 @@ public final class KeepAwakeAdapter: ObservableObject {
     @Published public var customMinutes: Int = 5
     @Published public var customSeconds: Int = 0
 
+    // MARK: - Duration Steppers & Bounds Management
+
+    public func incrementHours(max: Int = 23) {
+        guard timerState != .running && timerState != .paused else { return }
+        if customHours < max {
+            customHours += 1
+        }
+    }
+
+    public func decrementHours() {
+        guard timerState != .running && timerState != .paused else { return }
+        if customHours > 0 {
+            customHours -= 1
+        }
+    }
+
+    public func incrementMinutes() {
+        guard timerState != .running && timerState != .paused else { return }
+        if customMinutes < 59 {
+            customMinutes += 1
+        }
+    }
+
+    public func decrementMinutes() {
+        guard timerState != .running && timerState != .paused else { return }
+        if customMinutes > 0 {
+            customMinutes -= 1
+        }
+    }
+
+    public func incrementSeconds() {
+        guard timerState != .running && timerState != .paused else { return }
+        if customSeconds < 59 {
+            customSeconds += 1
+        }
+    }
+
+    public func decrementSeconds() {
+        guard timerState != .running && timerState != .paused else { return }
+        if customSeconds > 0 {
+            customSeconds -= 1
+        }
+    }
+
     private let core: IslandCore
     private var assertionID: IOPMAssertionID = 0
     private var tickTask: Task<Void, Never>?
@@ -126,8 +170,6 @@ public final class KeepAwakeAdapter: ObservableObject {
         timerState = .paused
         tickTask?.cancel()
         tickTask = nil
-
-        updateActivityPill(isPaused: true)
     }
 
     public func resumeTimer() {
@@ -223,37 +265,11 @@ public final class KeepAwakeAdapter: ObservableObject {
                 _ = try? core.finishTimerSession(sessionId: active.id, status: "completed", nowSecs: ts)
                 self.recentSessions = (try? core.listTimerSessions(limit: 20)) ?? []
             }
-
-            _ = try? core.startActivity(
-                activity: FfiActivityInfo(
-                    id: "timer-done",
-                    kind: "completed",
-                    title: "00:00",
-                    subtitle: "Finished!"
-                ),
-                nowMs: UInt64(Date().timeIntervalSince1970 * 1000.0)
-            )
         } else {
             let rem = UInt32(max(0.0, ceil(total - currentElapsed)))
             self.remainingSeconds = rem
             self.timerProgress = max(0.0, min(1.0, currentElapsed / total))
-            updateActivityPill(isPaused: false)
         }
-    }
-
-    private func updateActivityPill(isPaused: Bool) {
-        guard let active = activeSession else { return }
-        let formatted = formatHhMmSs(remainingSeconds)
-        let sub = isPaused ? "\(currentSessionLabel) (Paused)" : currentSessionLabel
-        _ = try? core.startActivity(
-            activity: FfiActivityInfo(
-                id: "timer-\(active.id)",
-                kind: active.kind,
-                title: formatted,
-                subtitle: sub
-            ),
-            nowMs: UInt64(Date().timeIntervalSince1970 * 1000.0)
-        )
     }
 
     private func sendCompletionNotification() {

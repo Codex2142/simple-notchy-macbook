@@ -608,6 +608,11 @@ impl IslandCore {
         Ok(())
     }
 
+    pub fn clear_clipboard_history(&self) -> Result<u64, FfiError> {
+        let count = self.coordinator.clear_clipboard_history()?;
+        Ok(count as u64)
+    }
+
     pub fn start_timer_session(
         &self,
         kind: String,
