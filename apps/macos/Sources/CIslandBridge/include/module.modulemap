@@ -1,0 +1,4 @@
+module island_bridgeFFI {
+    header "island_bridgeFFI.h"
+    export *
+}

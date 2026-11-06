@@ -108,13 +108,13 @@
 **Description:** Create `crates/bridge` exposing `IslandCore` FFI object, typed commands, view state snapshots, and callback listener interface. Add `scripts/build-rust-macos.sh` to generate Swift bindings into `apps/macos/Sources/Bridge/Generated`.
 
 **Acceptance criteria:**
-- [ ] `crates/bridge` compiles as `staticlib` and `cdylib`.
-- [ ] `scripts/build-rust-macos.sh` generates Swift bindings and C header/modulemap cleanly.
-- [ ] Rust FFI contract tests verify round-trip command dispatch and event listener callbacks.
+- [x] `crates/bridge` compiles as `staticlib` and `cdylib`.
+- [x] `scripts/build-rust-macos.sh` generates Swift bindings and C header/modulemap cleanly.
+- [x] Rust FFI contract tests verify round-trip command dispatch and event listener callbacks.
 
 **Verification:**
-- [ ] Tests pass: `cargo test -p island-bridge`
-- [ ] Build succeeds: `./scripts/build-rust-macos.sh`
+- [x] Tests pass: `cargo test -p island-bridge`
+- [x] Build succeeds: `./scripts/build-rust-macos.sh`
 
 **Dependencies:** Task 3
 
