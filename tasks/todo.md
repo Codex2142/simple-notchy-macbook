@@ -158,13 +158,13 @@
 **Description:** Implement `IslandPanel` (`NSPanel` subclass with non-activating, status-bar-level, all-spaces behavior), `IslandWindowController`, `HoverController`, and the SwiftUI `IslandRootView` connected to `IslandCore` via UniFFI.
 
 **Acceptance criteria:**
-- [ ] `IslandPanel` configures `.borderless`, `.nonactivatingPanel`, `.canJoinAllSpaces`, and `.fullScreenAuxiliary`.
-- [ ] Hovering over the notch expands the panel smoothly; moving the cursor away collapses it after debounce.
-- [ ] Clicking the Pin button keeps the Island expanded until unpinned.
+- [x] `IslandPanel` configures `.borderless`, `.nonactivatingPanel`, `.canJoinAllSpaces`, and `.fullScreenAuxiliary`.
+- [x] Hovering over the notch expands the panel smoothly; moving the cursor away collapses it after debounce.
+- [x] Clicking the Pin button keeps the Island expanded until unpinned.
 
 **Verification:**
-- [ ] Tests pass: `swift test --package-path apps/macos`
-- [ ] Build succeeds: `swift build --package-path apps/macos`
+- [x] Tests pass: `./scripts/test-macos.sh`
+- [x] Build succeeds: `swift build --package-path apps/macos`
 
 **Dependencies:** Task 5
 
@@ -180,8 +180,8 @@
 ---
 
 ## Checkpoint 2: After Tasks 4–6
-- [ ] `cargo test --workspace` and `swift test --package-path apps/macos` pass
-- [ ] Floating Island window renders at notch position, expands on hover/click, and communicates with Rust `IslandCore` over UniFFI
+- [x] `cargo test --workspace` and `./scripts/test-macos.sh` pass
+- [x] Floating Island window renders at notch position, expands on hover/click, and communicates with Rust `IslandCore` over UniFFI
 
 ---
 

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import CoreGraphics
 import IslandBridge
@@ -12,7 +13,8 @@ struct IslandSelfTest {
         }
     }
 
-    static func main() throws {
+    @MainActor
+    static func main() async throws {
         print("==> Running Project Island macOS Swift + UniFFI Self-Tests...")
 
         // 1. Notched MacBook Pro 14" geometry test
@@ -75,6 +77,30 @@ struct IslandSelfTest {
         check(profiles.count == 1, "Expected 1 persisted display profile")
         check(profiles.first?.displayUuid == "UUID-MBP-14", "Expected persisted UUID-MBP-14")
 
-        print("==> PASS: All Swift + UniFFI tests succeeded!")
+        // 5. WindowLevelManager & HoverController & IslandWindowController tests
+        let collapsedLevel = WindowLevelManager.windowLevel(for: .collapsed)
+        let expandedLevel = WindowLevelManager.windowLevel(for: .expanded)
+        check(expandedLevel > collapsedLevel, "Expanded window level should sit above collapsed level")
+
+        let hover = HoverController(hoverInDelayMs: 20, hoverOutGraceMs: 20)
+        var detectedSwipe: HoverController.SwipeDirection?
+        hover.onSwipeGesture = { dir in detectedSwipe = dir }
+        hover.handleScrollDelta(deltaX: 0, deltaY: 22)
+        check(detectedSwipe == .down, "Expected swipe down gesture")
+
+        let controllerCore = try IslandCore.newInMemory()
+        let windowController = try IslandWindowController(core: controllerCore, hoverController: hover)
+        check(windowController.viewState.mode == .collapsed, "WindowController starts in .collapsed")
+        windowController.toggleExpandedOrPinned()
+        try await Task.sleep(nanoseconds: 25_000_000)
+        check(windowController.viewState.mode == .expanded, "toggleExpandedOrPinned transitions to .expanded")
+        windowController.togglePin()
+        try await Task.sleep(nanoseconds: 25_000_000)
+        check(windowController.viewState.mode == .pinned, "togglePin transitions to .pinned")
+        windowController.collapseNow()
+        try await Task.sleep(nanoseconds: 25_000_000)
+        check(windowController.viewState.mode == .collapsed, "collapseNow returns to .collapsed")
+
+        print("==> PASS: All Swift + UniFFI + Window Engine tests succeeded!")
     }
 }

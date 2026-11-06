@@ -17,6 +17,7 @@ let package = Package(
     products: [
         .library(name: "IslandBridge", targets: ["IslandBridge"]),
         .library(name: "IslandWindow", targets: ["IslandWindow"]),
+        .executable(name: "ProjectIslandApp", targets: ["ProjectIslandApp"]),
         .executable(name: "IslandSelfTest", targets: ["IslandSelfTest"]),
     ],
     targets: [
@@ -37,6 +38,11 @@ let package = Package(
             name: "IslandWindow",
             dependencies: ["IslandBridge"],
             path: "Sources/Window"
+        ),
+        .executableTarget(
+            name: "ProjectIslandApp",
+            dependencies: ["IslandWindow", "IslandBridge"],
+            path: "Sources/App"
         ),
         .executableTarget(
             name: "IslandSelfTest",
