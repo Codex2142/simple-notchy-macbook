@@ -296,12 +296,12 @@
 **Description:** Add `migrations/0004_media.sql`, implement media state normalization in Rust, `MediaAdapter` in Swift using `DistributedNotificationCenter` (`com.apple.Music.playerInfo`, `com.spotify.client.PlaybackStateChanged`) and AppleScript playback commands, and render the Now Playing Peek/Expanded view.
 
 **Acceptance criteria:**
-- [ ] Track changes in Apple Music or Spotify update Now Playing metadata and trigger a `Peek` transition.
-- [ ] Play/Pause, Next, and Previous controls dispatch to the active media player.
-- [ ] Unavailable players are handled gracefully.
+- [x] Track changes in Apple Music or Spotify update Now Playing metadata and trigger a `Peek` transition.
+- [x] Play/Pause, Next, and Previous controls dispatch to the active media player.
+- [x] Unavailable players are handled gracefully.
 
 **Verification:**
-- [ ] Tests pass: `cargo test --workspace && swift test --package-path apps/macos`
+- [x] Tests pass: `cargo test --workspace && ./scripts/test-macos.sh`
 
 **Dependencies:** Task 10
 

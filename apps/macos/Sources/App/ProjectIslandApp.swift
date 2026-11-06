@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowController: IslandWindowController?
     private var pasteboardMonitor: PasteboardMonitor?
     private var keepAwakeAdapter: KeepAwakeAdapter?
+    private var mediaAdapter: MediaAdapter?
     private var settingsStore: SettingsStore?
     private var settingsWindow: NSWindow?
     private var statusItem: NSStatusItem?
@@ -22,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               let controller = try? IslandWindowController(core: core),
               let pasteboard = try? PasteboardMonitor(core: core),
               let keepAwake = try? KeepAwakeAdapter(core: core),
+              let media = try? MediaAdapter(core: core),
               let settings = try? SettingsStore(core: core)
         else {
             fputs("Failed to initialize IslandCore\n", stderr)
@@ -32,12 +34,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let rootView = IslandRootView(
             controller: controller,
             pasteboardMonitor: pasteboard,
-            keepAwakeAdapter: keepAwake
+            keepAwakeAdapter: keepAwake,
+            mediaAdapter: media
         )
         controller.attachRootView(rootView)
         self.windowController = controller
         self.pasteboardMonitor = pasteboard
         self.keepAwakeAdapter = keepAwake
+        self.mediaAdapter = media
         self.settingsStore = settings
         setupMenuBarExtra()
     }

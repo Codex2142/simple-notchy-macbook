@@ -2,6 +2,7 @@
 
 pub mod clipboard;
 pub mod event_bus;
+pub mod media;
 pub mod state_machine;
 pub mod timer;
 
@@ -17,6 +18,7 @@ use island_storage::{
     timer_repo::{TimerRepository, TimerSessionRecord},
     Storage,
 };
+use media::NowPlayingTrack;
 use state_machine::{ActiveActivity, IslandStateMachine, IslandStateSnapshot, PeekPreview};
 use std::sync::{Arc, Mutex};
 use timer::{format_duration_mm_ss, validate_timer_request};
@@ -26,6 +28,7 @@ pub struct AppCoordinator {
     storage: Storage,
     event_bus: EventBus,
     state_machine: Arc<Mutex<IslandStateMachine>>,
+    now_playing: Arc<Mutex<Option<NowPlayingTrack>>>,
 }
 
 impl AppCoordinator {
@@ -48,6 +51,7 @@ impl AppCoordinator {
             storage,
             event_bus: EventBus::new(),
             state_machine: Arc::new(Mutex::new(IslandStateMachine::default())),
+            now_playing: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -279,6 +283,43 @@ impl AppCoordinator {
 
     pub fn list_timer_sessions(&self, limit: usize) -> IslandResult<Vec<TimerSessionRecord>> {
         self.storage.timer_repo().list_recent(limit)
+    }
+
+    pub fn update_now_playing(
+        &self,
+        track: NowPlayingTrack,
+        now_ms: u64,
+    ) -> IslandResult<IslandStateSnapshot> {
+        let is_new_track = {
+            let mut guard = self
+                .now_playing
+                .lock()
+                .map_err(|_| IslandError::Internal("NowPlaying mutex poisoned".to_string()))?;
+            let changed = track.is_new_track_compared_to(guard.as_ref());
+            *guard = Some(track.clone());
+            changed
+        };
+
+        if is_new_track && track.is_playing {
+            self.request_peek(
+                PeekPreview {
+                    source: track.source_app.clone(),
+                    title: track.title,
+                    subtitle: track.artist,
+                },
+                now_ms,
+            )
+        } else {
+            self.state_snapshot()
+        }
+    }
+
+    pub fn current_now_playing(&self) -> IslandResult<Option<NowPlayingTrack>> {
+        let guard = self
+            .now_playing
+            .lock()
+            .map_err(|_| IslandError::Internal("NowPlaying mutex poisoned".to_string()))?;
+        Ok(guard.clone())
     }
 
     fn lock_sm(&self) -> IslandResult<std::sync::MutexGuard<'_, IslandStateMachine>> {

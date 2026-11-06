@@ -5,6 +5,7 @@ use island_common::{AppConfig, IslandError, RetentionPolicy};
 use island_core::{
     clipboard::ClipboardCaptureCandidate,
     event_bus::DomainEvent,
+    media::NowPlayingTrack,
     state_machine::{ActiveActivity, IslandPrimaryState, IslandStateSnapshot, PeekPreview},
     AppCoordinator,
 };
@@ -186,6 +187,45 @@ pub struct FfiTimerSession {
     pub started_at: i64,
     pub completed_at: Option<i64>,
     pub status: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiNowPlayingTrack {
+    pub source_app: String,
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    pub duration_secs: u32,
+    pub elapsed_secs: u32,
+    pub is_playing: bool,
+}
+
+impl From<NowPlayingTrack> for FfiNowPlayingTrack {
+    fn from(t: NowPlayingTrack) -> Self {
+        Self {
+            source_app: t.source_app,
+            title: t.title,
+            artist: t.artist,
+            album: t.album,
+            duration_secs: t.duration_secs,
+            elapsed_secs: t.elapsed_secs,
+            is_playing: t.is_playing,
+        }
+    }
+}
+
+impl From<FfiNowPlayingTrack> for NowPlayingTrack {
+    fn from(t: FfiNowPlayingTrack) -> Self {
+        Self {
+            source_app: t.source_app,
+            title: t.title,
+            artist: t.artist,
+            album: t.album,
+            duration_secs: t.duration_secs,
+            elapsed_secs: t.elapsed_secs,
+            is_playing: t.is_playing,
+        }
+    }
 }
 
 impl From<TimerSessionRecord> for FfiTimerSession {
@@ -472,6 +512,21 @@ impl IslandCore {
     pub fn list_timer_sessions(&self, limit: u32) -> Result<Vec<FfiTimerSession>, FfiError> {
         let items = self.coordinator.list_timer_sessions(limit as usize)?;
         Ok(items.into_iter().map(Into::into).collect())
+    }
+
+    pub fn update_now_playing(
+        &self,
+        track: FfiNowPlayingTrack,
+        now_ms: u64,
+    ) -> Result<FfiIslandViewState, FfiError> {
+        Ok(self
+            .coordinator
+            .update_now_playing(track.into(), now_ms)?
+            .into())
+    }
+
+    pub fn current_now_playing(&self) -> Result<Option<FfiNowPlayingTrack>, FfiError> {
+        Ok(self.coordinator.current_now_playing()?.map(Into::into))
     }
 }
 

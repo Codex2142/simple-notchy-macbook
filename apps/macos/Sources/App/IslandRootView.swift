@@ -9,15 +9,18 @@ public struct IslandRootView: View {
     @ObservedObject public var controller: IslandWindowController
     @ObservedObject public var pasteboardMonitor: PasteboardMonitor
     @ObservedObject public var keepAwakeAdapter: KeepAwakeAdapter
+    @ObservedObject public var mediaAdapter: MediaAdapter
 
     public init(
         controller: IslandWindowController,
         pasteboardMonitor: PasteboardMonitor,
-        keepAwakeAdapter: KeepAwakeAdapter
+        keepAwakeAdapter: KeepAwakeAdapter,
+        mediaAdapter: MediaAdapter
     ) {
         self.controller = controller
         self.pasteboardMonitor = pasteboardMonitor
         self.keepAwakeAdapter = keepAwakeAdapter
+        self.mediaAdapter = mediaAdapter
     }
 
     public var body: some View {
@@ -176,21 +179,19 @@ public struct IslandRootView: View {
             } else if controller.selectedTab == .timer {
                 TimerTabView(adapter: keepAwakeAdapter)
             } else {
+                MediaPlayerView(mediaAdapter: mediaAdapter)
                 Spacer(minLength: 0)
-
                 HStack {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("Project Island — \(controller.selectedTab.rawValue)")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.white)
                         Text(statusLine)
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.7))
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.65))
                     }
                     Spacer()
                 }
-
-                Spacer(minLength: 0)
             }
         }
     }

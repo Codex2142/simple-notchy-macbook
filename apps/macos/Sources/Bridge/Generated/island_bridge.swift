@@ -539,6 +539,8 @@ public protocol IslandCoreProtocol : AnyObject {
     
     func clearActivity(nowMs: UInt64) throws  -> FfiIslandViewState
     
+    func currentNowPlaying() throws  -> FfiNowPlayingTrack?
+    
     func currentState() throws  -> FfiIslandViewState
     
     func deleteClipboardItem(itemId: Int64) throws 
@@ -580,6 +582,8 @@ public protocol IslandCoreProtocol : AnyObject {
     func tryAutoCollapse(expectedEpoch: UInt64?, nowMs: UInt64) throws  -> FfiIslandViewState
     
     func unpin(nowMs: UInt64) throws  -> FfiIslandViewState
+    
+    func updateNowPlaying(track: FfiNowPlayingTrack, nowMs: UInt64) throws  -> FfiIslandViewState
     
 }
 
@@ -677,6 +681,13 @@ open func clearActivity(nowMs: UInt64)throws  -> FfiIslandViewState {
     return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_clear_activity(self.uniffiClonePointer(),
         FfiConverterUInt64.lower(nowMs),$0
+    )
+})
+}
+    
+open func currentNowPlaying()throws  -> FfiNowPlayingTrack? {
+    return try  FfiConverterOptionTypeFfiNowPlayingTrack.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_current_now_playing(self.uniffiClonePointer(),$0
     )
 })
 }
@@ -849,6 +860,15 @@ open func tryAutoCollapse(expectedEpoch: UInt64?, nowMs: UInt64)throws  -> FfiIs
 open func unpin(nowMs: UInt64)throws  -> FfiIslandViewState {
     return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_unpin(self.uniffiClonePointer(),
+        FfiConverterUInt64.lower(nowMs),$0
+    )
+})
+}
+    
+open func updateNowPlaying(track: FfiNowPlayingTrack, nowMs: UInt64)throws  -> FfiIslandViewState {
+    return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_update_now_playing(self.uniffiClonePointer(),
+        FfiConverterTypeFfiNowPlayingTrack.lower(track),
         FfiConverterUInt64.lower(nowMs),$0
     )
 })
@@ -1454,6 +1474,112 @@ public func FfiConverterTypeFfiModuleSetting_lift(_ buf: RustBuffer) throws -> F
 #endif
 public func FfiConverterTypeFfiModuleSetting_lower(_ value: FfiModuleSetting) -> RustBuffer {
     return FfiConverterTypeFfiModuleSetting.lower(value)
+}
+
+
+public struct FfiNowPlayingTrack {
+    public var sourceApp: String
+    public var title: String
+    public var artist: String
+    public var album: String
+    public var durationSecs: UInt32
+    public var elapsedSecs: UInt32
+    public var isPlaying: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(sourceApp: String, title: String, artist: String, album: String, durationSecs: UInt32, elapsedSecs: UInt32, isPlaying: Bool) {
+        self.sourceApp = sourceApp
+        self.title = title
+        self.artist = artist
+        self.album = album
+        self.durationSecs = durationSecs
+        self.elapsedSecs = elapsedSecs
+        self.isPlaying = isPlaying
+    }
+}
+
+
+
+extension FfiNowPlayingTrack: Equatable, Hashable {
+    public static func ==(lhs: FfiNowPlayingTrack, rhs: FfiNowPlayingTrack) -> Bool {
+        if lhs.sourceApp != rhs.sourceApp {
+            return false
+        }
+        if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.artist != rhs.artist {
+            return false
+        }
+        if lhs.album != rhs.album {
+            return false
+        }
+        if lhs.durationSecs != rhs.durationSecs {
+            return false
+        }
+        if lhs.elapsedSecs != rhs.elapsedSecs {
+            return false
+        }
+        if lhs.isPlaying != rhs.isPlaying {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(sourceApp)
+        hasher.combine(title)
+        hasher.combine(artist)
+        hasher.combine(album)
+        hasher.combine(durationSecs)
+        hasher.combine(elapsedSecs)
+        hasher.combine(isPlaying)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiNowPlayingTrack: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiNowPlayingTrack {
+        return
+            try FfiNowPlayingTrack(
+                sourceApp: FfiConverterString.read(from: &buf), 
+                title: FfiConverterString.read(from: &buf), 
+                artist: FfiConverterString.read(from: &buf), 
+                album: FfiConverterString.read(from: &buf), 
+                durationSecs: FfiConverterUInt32.read(from: &buf), 
+                elapsedSecs: FfiConverterUInt32.read(from: &buf), 
+                isPlaying: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiNowPlayingTrack, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.sourceApp, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.artist, into: &buf)
+        FfiConverterString.write(value.album, into: &buf)
+        FfiConverterUInt32.write(value.durationSecs, into: &buf)
+        FfiConverterUInt32.write(value.elapsedSecs, into: &buf)
+        FfiConverterBool.write(value.isPlaying, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiNowPlayingTrack_lift(_ buf: RustBuffer) throws -> FfiNowPlayingTrack {
+    return try FfiConverterTypeFfiNowPlayingTrack.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiNowPlayingTrack_lower(_ value: FfiNowPlayingTrack) -> RustBuffer {
+    return FfiConverterTypeFfiNowPlayingTrack.lower(value)
 }
 
 
@@ -2109,6 +2235,30 @@ fileprivate struct FfiConverterOptionTypeFfiActivityInfo: FfiConverterRustBuffer
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeFfiNowPlayingTrack: FfiConverterRustBuffer {
+    typealias SwiftType = FfiNowPlayingTrack?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiNowPlayingTrack.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiNowPlayingTrack.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeFfiPeekInfo: FfiConverterRustBuffer {
     typealias SwiftType = FfiPeekInfo?
 
@@ -2279,6 +2429,9 @@ private var initializationResult: InitializationResult = {
     if (uniffi_island_bridge_checksum_method_islandcore_clear_activity() != 57580) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_island_bridge_checksum_method_islandcore_current_now_playing() != 14055) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_island_bridge_checksum_method_islandcore_current_state() != 28493) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -2340,6 +2493,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_unpin() != 16170) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_update_now_playing() != 38818) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_constructor_islandcore_new() != 14868) {

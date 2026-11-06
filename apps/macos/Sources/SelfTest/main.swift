@@ -182,6 +182,25 @@ struct IslandSelfTest {
         let postTimerState = try controllerCore.currentState()
         check(postTimerState.mode == .collapsed, "Stopping session returns Island to .collapsed")
 
-        print("==> PASS: All Swift + UniFFI + Window Engine + Settings + Clipboard + Timer/KeepAwake tests succeeded!")
+        // 9. Task 11: Media Now Playing & Peek transition tests
+        let media = try MediaAdapter(core: controllerCore)
+        let peekState = try media.reportNowPlaying(
+            sourceApp: "Music",
+            title: "Starlight",
+            artist: "Muse",
+            album: "Black Holes and Revelations",
+            durationSecs: 240,
+            elapsedSecs: 1,
+            isPlaying: true,
+            nowMs: 5_000
+        )
+        check(peekState.mode == .peek, "New playing track transitions Island to .peek mode")
+        check(peekState.activePeek?.title == "Starlight", "Peek title matches track")
+        check(media.nowPlaying?.artist == "Muse", "NowPlaying artist updated")
+
+        media.togglePlayPause()
+        check(media.nowPlaying?.isPlaying == false, "togglePlayPause toggles playing flag")
+
+        print("==> PASS: All Swift + UniFFI + Window Engine + Settings + Clipboard + Timer + Media tests succeeded!")
     }
 }

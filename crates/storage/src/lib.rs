@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 const MIGRATION_0001: &str = include_str!("../../../migrations/0001_initial_schema.sql");
 const MIGRATION_0002: &str = include_str!("../../../migrations/0002_clipboard.sql");
 const MIGRATION_0003: &str = include_str!("../../../migrations/0003_timers.sql");
+const MIGRATION_0004: &str = include_str!("../../../migrations/0004_media.sql");
 
 struct Migration {
     version: i64,
@@ -34,6 +35,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 3,
         name: "0003_timers",
         sql: MIGRATION_0003,
+    },
+    Migration {
+        version: 4,
+        name: "0004_media",
+        sql: MIGRATION_0004,
     },
 ];
 
