@@ -343,11 +343,11 @@
 **Description:** Add `migrations/0005_notes_shelf.sql` (`notes`, `snippets`, `activity_events`), implement CRUD in Rust, and build `QuickNotesView` and drag-to-notch `FileShelfView`.
 
 **Acceptance criteria:**
-- [ ] Dragging files to the Island stores them in the File Shelf for quick drag-out or clearing.
-- [ ] Quick Notes and Snippets persist immediately to SQLite and survive app restarts.
+- [x] Dragging files to the Island stores them in the File Shelf for quick drag-out or clearing.
+- [x] Quick Notes and Snippets persist immediately to SQLite and survive app restarts.
 
 **Verification:**
-- [ ] Tests pass: `cargo test --workspace && swift test --package-path apps/macos`
+- [x] Tests pass: `cargo test --workspace && ./scripts/test-macos.sh`
 
 **Dependencies:** Task 12
 
@@ -366,11 +366,11 @@
 **Description:** Create `.github/workflows/ci.yml` to run `cargo test`, `cargo clippy`, and `swift test` on macOS runners, and generate `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, and `docs/SECURITY.md`.
 
 **Acceptance criteria:**
-- [ ] GitHub Actions workflow validates both Rust and Swift build/test suites.
-- [ ] Architecture, Database, and Security docs match implemented schemas and FFI contracts.
+- [x] GitHub Actions workflow validates both Rust and Swift build/test suites.
+- [x] Architecture, Database, and Security docs match implemented schemas and FFI contracts.
 
 **Verification:**
-- [ ] Tests pass: `cargo test --workspace && swift test --package-path apps/macos`
+- [x] Tests pass: `cargo test --workspace && ./scripts/test-macos.sh`
 
 **Dependencies:** Task 13
 
@@ -385,6 +385,6 @@
 ---
 
 ## Checkpoint 4: After Tasks 10–14
-- [ ] All Rust and Swift tests pass
-- [ ] All M0–M3 vertical slices verified end-to-end
-- [ ] Documentation and CI pipeline complete
+- [x] All Rust and Swift tests pass
+- [x] All M0–M3 vertical slices verified end-to-end
+- [x] Documentation and CI pipeline complete

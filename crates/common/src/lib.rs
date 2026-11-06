@@ -134,8 +134,10 @@ mod tests {
 
     #[test]
     fn rejects_empty_db_path_or_zero_retention() {
-        let mut cfg = AppConfig::default();
-        cfg.database_path = PathBuf::new();
+        let cfg = AppConfig {
+            database_path: PathBuf::new(),
+            ..Default::default()
+        };
         assert!(matches!(cfg.validate(), Err(IslandError::Validation(_))));
 
         let mut cfg2 = AppConfig::default();

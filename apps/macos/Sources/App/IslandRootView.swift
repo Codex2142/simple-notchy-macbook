@@ -11,19 +11,22 @@ public struct IslandRootView: View {
     @ObservedObject public var keepAwakeAdapter: KeepAwakeAdapter
     @ObservedObject public var mediaAdapter: MediaAdapter
     @ObservedObject public var systemMetricsAdapter: SystemMetricsAdapter
+    @ObservedObject public var notesShelfStore: NotesShelfStore
 
     public init(
         controller: IslandWindowController,
         pasteboardMonitor: PasteboardMonitor,
         keepAwakeAdapter: KeepAwakeAdapter,
         mediaAdapter: MediaAdapter,
-        systemMetricsAdapter: SystemMetricsAdapter
+        systemMetricsAdapter: SystemMetricsAdapter,
+        notesShelfStore: NotesShelfStore
     ) {
         self.controller = controller
         self.pasteboardMonitor = pasteboardMonitor
         self.keepAwakeAdapter = keepAwakeAdapter
         self.mediaAdapter = mediaAdapter
         self.systemMetricsAdapter = systemMetricsAdapter
+        self.notesShelfStore = notesShelfStore
     }
 
     public var body: some View {
@@ -181,6 +184,10 @@ public struct IslandRootView: View {
                 ClipboardTabView(monitor: pasteboardMonitor)
             } else if controller.selectedTab == .timer {
                 TimerTabView(adapter: keepAwakeAdapter)
+            } else if controller.selectedTab == .notes {
+                QuickNotesView(store: notesShelfStore)
+            } else if controller.selectedTab == .shelf {
+                FileShelfView(store: notesShelfStore)
             } else if controller.selectedTab == .system {
                 SystemMetricsView(adapter: systemMetricsAdapter)
             } else {

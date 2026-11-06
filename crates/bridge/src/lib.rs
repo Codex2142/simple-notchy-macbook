@@ -12,6 +12,7 @@ use island_core::{
 };
 use island_storage::{
     clipboard_repo::ClipboardItemRecord,
+    notes_shelf_repo::{NoteRecord, ShelfItemRecord},
     repositories::{DisplayProfileRecord, ModuleSettingRecord},
     timer_repo::TimerSessionRecord,
 };
@@ -264,6 +265,44 @@ impl From<FfiSystemTelemetry> for SystemTelemetry {
             is_charging: t.is_charging,
             volume_percent: t.volume_percent,
             is_muted: t.is_muted,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiNoteItem {
+    pub id: i64,
+    pub title: String,
+    pub content: String,
+    pub updated_at: i64,
+}
+
+impl From<NoteRecord> for FfiNoteItem {
+    fn from(n: NoteRecord) -> Self {
+        Self {
+            id: n.id,
+            title: n.title,
+            content: n.content,
+            updated_at: n.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiShelfItem {
+    pub id: i64,
+    pub file_path: String,
+    pub display_name: String,
+    pub added_at: i64,
+}
+
+impl From<ShelfItemRecord> for FfiShelfItem {
+    fn from(s: ShelfItemRecord) -> Self {
+        Self {
+            id: s.id,
+            file_path: s.file_path,
+            display_name: s.display_name,
+            added_at: s.added_at,
         }
     }
 }
@@ -582,6 +621,56 @@ impl IslandCore {
 
     pub fn current_system_telemetry(&self) -> Result<FfiSystemTelemetry, FfiError> {
         Ok(self.coordinator.current_system_telemetry()?.into())
+    }
+
+    pub fn save_note(
+        &self,
+        note_id: Option<i64>,
+        title: String,
+        content: String,
+        now_secs: i64,
+    ) -> Result<FfiNoteItem, FfiError> {
+        Ok(self
+            .coordinator
+            .save_note(note_id, &title, &content, now_secs)?
+            .into())
+    }
+
+    pub fn list_notes(&self, limit: u32) -> Result<Vec<FfiNoteItem>, FfiError> {
+        let notes = self.coordinator.list_notes(limit as usize)?;
+        Ok(notes.into_iter().map(Into::into).collect())
+    }
+
+    pub fn delete_note(&self, note_id: i64) -> Result<(), FfiError> {
+        self.coordinator.delete_note(note_id)?;
+        Ok(())
+    }
+
+    pub fn add_shelf_item(
+        &self,
+        file_path: String,
+        display_name: String,
+        now_secs: i64,
+    ) -> Result<FfiShelfItem, FfiError> {
+        Ok(self
+            .coordinator
+            .add_shelf_item(&file_path, &display_name, now_secs)?
+            .into())
+    }
+
+    pub fn list_shelf_items(&self) -> Result<Vec<FfiShelfItem>, FfiError> {
+        let items = self.coordinator.list_shelf_items()?;
+        Ok(items.into_iter().map(Into::into).collect())
+    }
+
+    pub fn remove_shelf_item(&self, item_id: i64) -> Result<(), FfiError> {
+        self.coordinator.remove_shelf_item(item_id)?;
+        Ok(())
+    }
+
+    pub fn clear_shelf(&self) -> Result<(), FfiError> {
+        self.coordinator.clear_shelf()?;
+        Ok(())
     }
 }
 

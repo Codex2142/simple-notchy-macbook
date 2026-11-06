@@ -530,6 +530,8 @@ fileprivate struct FfiConverterString: FfiConverter {
 
 public protocol IslandCoreProtocol : AnyObject {
     
+    func addShelfItem(filePath: String, displayName: String, nowSecs: Int64) throws  -> FfiShelfItem
+    
     /**
      * Subscribes a Swift listener to receive state snapshots whenever the Island changes state.
      */
@@ -539,6 +541,8 @@ public protocol IslandCoreProtocol : AnyObject {
     
     func clearActivity(nowMs: UInt64) throws  -> FfiIslandViewState
     
+    func clearShelf() throws 
+    
     func currentNowPlaying() throws  -> FfiNowPlayingTrack?
     
     func currentState() throws  -> FfiIslandViewState
@@ -546,6 +550,8 @@ public protocol IslandCoreProtocol : AnyObject {
     func currentSystemTelemetry() throws  -> FfiSystemTelemetry
     
     func deleteClipboardItem(itemId: Int64) throws 
+    
+    func deleteNote(noteId: Int64) throws 
     
     func expand(nowMs: UInt64) throws  -> FfiIslandViewState
     
@@ -559,13 +565,21 @@ public protocol IslandCoreProtocol : AnyObject {
     
     func listModules() throws  -> [FfiModuleSetting]
     
+    func listNotes(limit: UInt32) throws  -> [FfiNoteItem]
+    
+    func listShelfItems() throws  -> [FfiShelfItem]
+    
     func listTimerSessions(limit: UInt32) throws  -> [FfiTimerSession]
     
     func pin(nowMs: UInt64) throws  -> FfiIslandViewState
     
     func registerDisplayProfile(profile: FfiDisplayProfile) throws 
     
+    func removeShelfItem(itemId: Int64) throws 
+    
     func requestPeek(preview: FfiPeekInfo, nowMs: UInt64) throws  -> FfiIslandViewState
+    
+    func saveNote(noteId: Int64?, title: String, content: String, nowSecs: Int64) throws  -> FfiNoteItem
     
     func setClipboardItemPinned(itemId: Int64, pinned: Bool) throws 
     
@@ -662,6 +676,16 @@ public static func newInMemory()throws  -> IslandCore {
     
 
     
+open func addShelfItem(filePath: String, displayName: String, nowSecs: Int64)throws  -> FfiShelfItem {
+    return try  FfiConverterTypeFfiShelfItem.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_add_shelf_item(self.uniffiClonePointer(),
+        FfiConverterString.lower(filePath),
+        FfiConverterString.lower(displayName),
+        FfiConverterInt64.lower(nowSecs),$0
+    )
+})
+}
+    
     /**
      * Subscribes a Swift listener to receive state snapshots whenever the Island changes state.
      */
@@ -689,6 +713,12 @@ open func clearActivity(nowMs: UInt64)throws  -> FfiIslandViewState {
 })
 }
     
+open func clearShelf()throws  {try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_clear_shelf(self.uniffiClonePointer(),$0
+    )
+}
+}
+    
 open func currentNowPlaying()throws  -> FfiNowPlayingTrack? {
     return try  FfiConverterOptionTypeFfiNowPlayingTrack.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_current_now_playing(self.uniffiClonePointer(),$0
@@ -713,6 +743,13 @@ open func currentSystemTelemetry()throws  -> FfiSystemTelemetry {
 open func deleteClipboardItem(itemId: Int64)throws  {try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_delete_clipboard_item(self.uniffiClonePointer(),
         FfiConverterInt64.lower(itemId),$0
+    )
+}
+}
+    
+open func deleteNote(noteId: Int64)throws  {try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_delete_note(self.uniffiClonePointer(),
+        FfiConverterInt64.lower(noteId),$0
     )
 }
 }
@@ -765,6 +802,21 @@ open func listModules()throws  -> [FfiModuleSetting] {
 })
 }
     
+open func listNotes(limit: UInt32)throws  -> [FfiNoteItem] {
+    return try  FfiConverterSequenceTypeFfiNoteItem.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_list_notes(self.uniffiClonePointer(),
+        FfiConverterUInt32.lower(limit),$0
+    )
+})
+}
+    
+open func listShelfItems()throws  -> [FfiShelfItem] {
+    return try  FfiConverterSequenceTypeFfiShelfItem.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_list_shelf_items(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
 open func listTimerSessions(limit: UInt32)throws  -> [FfiTimerSession] {
     return try  FfiConverterSequenceTypeFfiTimerSession.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_list_timer_sessions(self.uniffiClonePointer(),
@@ -788,11 +840,29 @@ open func registerDisplayProfile(profile: FfiDisplayProfile)throws  {try rustCal
 }
 }
     
+open func removeShelfItem(itemId: Int64)throws  {try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_remove_shelf_item(self.uniffiClonePointer(),
+        FfiConverterInt64.lower(itemId),$0
+    )
+}
+}
+    
 open func requestPeek(preview: FfiPeekInfo, nowMs: UInt64)throws  -> FfiIslandViewState {
     return try  FfiConverterTypeFfiIslandViewState.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
     uniffi_island_bridge_fn_method_islandcore_request_peek(self.uniffiClonePointer(),
         FfiConverterTypeFfiPeekInfo.lower(preview),
         FfiConverterUInt64.lower(nowMs),$0
+    )
+})
+}
+    
+open func saveNote(noteId: Int64?, title: String, content: String, nowSecs: Int64)throws  -> FfiNoteItem {
+    return try  FfiConverterTypeFfiNoteItem.lift(try rustCallWithError(FfiConverterTypeFfiError.lift) {
+    uniffi_island_bridge_fn_method_islandcore_save_note(self.uniffiClonePointer(),
+        FfiConverterOptionInt64.lower(noteId),
+        FfiConverterString.lower(title),
+        FfiConverterString.lower(content),
+        FfiConverterInt64.lower(nowSecs),$0
     )
 })
 }
@@ -1497,6 +1567,88 @@ public func FfiConverterTypeFfiModuleSetting_lower(_ value: FfiModuleSetting) ->
 }
 
 
+public struct FfiNoteItem {
+    public var id: Int64
+    public var title: String
+    public var content: String
+    public var updatedAt: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: Int64, title: String, content: String, updatedAt: Int64) {
+        self.id = id
+        self.title = title
+        self.content = content
+        self.updatedAt = updatedAt
+    }
+}
+
+
+
+extension FfiNoteItem: Equatable, Hashable {
+    public static func ==(lhs: FfiNoteItem, rhs: FfiNoteItem) -> Bool {
+        if lhs.id != rhs.id {
+            return false
+        }
+        if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.content != rhs.content {
+            return false
+        }
+        if lhs.updatedAt != rhs.updatedAt {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(title)
+        hasher.combine(content)
+        hasher.combine(updatedAt)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiNoteItem: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiNoteItem {
+        return
+            try FfiNoteItem(
+                id: FfiConverterInt64.read(from: &buf), 
+                title: FfiConverterString.read(from: &buf), 
+                content: FfiConverterString.read(from: &buf), 
+                updatedAt: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiNoteItem, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.id, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.content, into: &buf)
+        FfiConverterInt64.write(value.updatedAt, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiNoteItem_lift(_ buf: RustBuffer) throws -> FfiNoteItem {
+    return try FfiConverterTypeFfiNoteItem.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiNoteItem_lower(_ value: FfiNoteItem) -> RustBuffer {
+    return FfiConverterTypeFfiNoteItem.lower(value)
+}
+
+
 public struct FfiNowPlayingTrack {
     public var sourceApp: String
     public var title: String
@@ -1756,6 +1908,88 @@ public func FfiConverterTypeFfiRetentionPolicy_lift(_ buf: RustBuffer) throws ->
 #endif
 public func FfiConverterTypeFfiRetentionPolicy_lower(_ value: FfiRetentionPolicy) -> RustBuffer {
     return FfiConverterTypeFfiRetentionPolicy.lower(value)
+}
+
+
+public struct FfiShelfItem {
+    public var id: Int64
+    public var filePath: String
+    public var displayName: String
+    public var addedAt: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: Int64, filePath: String, displayName: String, addedAt: Int64) {
+        self.id = id
+        self.filePath = filePath
+        self.displayName = displayName
+        self.addedAt = addedAt
+    }
+}
+
+
+
+extension FfiShelfItem: Equatable, Hashable {
+    public static func ==(lhs: FfiShelfItem, rhs: FfiShelfItem) -> Bool {
+        if lhs.id != rhs.id {
+            return false
+        }
+        if lhs.filePath != rhs.filePath {
+            return false
+        }
+        if lhs.displayName != rhs.displayName {
+            return false
+        }
+        if lhs.addedAt != rhs.addedAt {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(filePath)
+        hasher.combine(displayName)
+        hasher.combine(addedAt)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiShelfItem: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiShelfItem {
+        return
+            try FfiShelfItem(
+                id: FfiConverterInt64.read(from: &buf), 
+                filePath: FfiConverterString.read(from: &buf), 
+                displayName: FfiConverterString.read(from: &buf), 
+                addedAt: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiShelfItem, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.id, into: &buf)
+        FfiConverterString.write(value.filePath, into: &buf)
+        FfiConverterString.write(value.displayName, into: &buf)
+        FfiConverterInt64.write(value.addedAt, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiShelfItem_lift(_ buf: RustBuffer) throws -> FfiShelfItem {
+    return try FfiConverterTypeFfiShelfItem.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiShelfItem_lower(_ value: FfiShelfItem) -> RustBuffer {
+    return FfiConverterTypeFfiShelfItem.lower(value)
 }
 
 
@@ -2509,6 +2743,56 @@ fileprivate struct FfiConverterSequenceTypeFfiModuleSetting: FfiConverterRustBuf
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeFfiNoteItem: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiNoteItem]
+
+    public static func write(_ value: [FfiNoteItem], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiNoteItem.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiNoteItem] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiNoteItem]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiNoteItem.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFfiShelfItem: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiShelfItem]
+
+    public static func write(_ value: [FfiShelfItem], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiShelfItem.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiShelfItem] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiShelfItem]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiShelfItem.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypeFfiTimerSession: FfiConverterRustBuffer {
     typealias SwiftType = [FfiTimerSession]
 
@@ -2546,6 +2830,9 @@ private var initializationResult: InitializationResult = {
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
+    if (uniffi_island_bridge_checksum_method_islandcore_add_shelf_item() != 26420) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_island_bridge_checksum_method_islandcore_add_state_listener() != 39203) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -2553,6 +2840,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_clear_activity() != 57580) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_clear_shelf() != 29482) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_current_now_playing() != 14055) {
@@ -2565,6 +2855,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_delete_clipboard_item() != 58645) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_delete_note() != 33685) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_expand() != 29740) {
@@ -2585,6 +2878,12 @@ private var initializationResult: InitializationResult = {
     if (uniffi_island_bridge_checksum_method_islandcore_list_modules() != 169) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_island_bridge_checksum_method_islandcore_list_notes() != 33276) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_list_shelf_items() != 32462) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_island_bridge_checksum_method_islandcore_list_timer_sessions() != 17402) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -2594,7 +2893,13 @@ private var initializationResult: InitializationResult = {
     if (uniffi_island_bridge_checksum_method_islandcore_register_display_profile() != 56505) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_island_bridge_checksum_method_islandcore_remove_shelf_item() != 46567) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_island_bridge_checksum_method_islandcore_request_peek() != 46669) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_island_bridge_checksum_method_islandcore_save_note() != 64408) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_island_bridge_checksum_method_islandcore_set_clipboard_item_pinned() != 3011) {

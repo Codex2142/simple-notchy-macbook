@@ -287,6 +287,11 @@ void*_Nonnull uniffi_island_bridge_fn_constructor_islandcore_new_in_memory(RustC
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_ADD_SHELF_ITEM
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_ADD_SHELF_ITEM
+RustBuffer uniffi_island_bridge_fn_method_islandcore_add_shelf_item(void*_Nonnull ptr, RustBuffer file_path, RustBuffer display_name, int64_t now_secs, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_ADD_STATE_LISTENER
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_ADD_STATE_LISTENER
 void uniffi_island_bridge_fn_method_islandcore_add_state_listener(void*_Nonnull ptr, uint64_t listener, RustCallStatus *_Nonnull out_status
@@ -300,6 +305,11 @@ RustBuffer uniffi_island_bridge_fn_method_islandcore_capture_clipboard_item(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_CLEAR_ACTIVITY
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_CLEAR_ACTIVITY
 RustBuffer uniffi_island_bridge_fn_method_islandcore_clear_activity(void*_Nonnull ptr, uint64_t now_ms, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_CLEAR_SHELF
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_CLEAR_SHELF
+void uniffi_island_bridge_fn_method_islandcore_clear_shelf(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_CURRENT_NOW_PLAYING
@@ -320,6 +330,11 @@ RustBuffer uniffi_island_bridge_fn_method_islandcore_current_system_telemetry(vo
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_DELETE_CLIPBOARD_ITEM
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_DELETE_CLIPBOARD_ITEM
 void uniffi_island_bridge_fn_method_islandcore_delete_clipboard_item(void*_Nonnull ptr, int64_t item_id, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_DELETE_NOTE
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_DELETE_NOTE
+void uniffi_island_bridge_fn_method_islandcore_delete_note(void*_Nonnull ptr, int64_t note_id, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_EXPAND
@@ -352,6 +367,16 @@ RustBuffer uniffi_island_bridge_fn_method_islandcore_list_display_profiles(void*
 RustBuffer uniffi_island_bridge_fn_method_islandcore_list_modules(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_LIST_NOTES
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_LIST_NOTES
+RustBuffer uniffi_island_bridge_fn_method_islandcore_list_notes(void*_Nonnull ptr, uint32_t limit, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_LIST_SHELF_ITEMS
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_LIST_SHELF_ITEMS
+RustBuffer uniffi_island_bridge_fn_method_islandcore_list_shelf_items(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_LIST_TIMER_SESSIONS
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_LIST_TIMER_SESSIONS
 RustBuffer uniffi_island_bridge_fn_method_islandcore_list_timer_sessions(void*_Nonnull ptr, uint32_t limit, RustCallStatus *_Nonnull out_status
@@ -367,9 +392,19 @@ RustBuffer uniffi_island_bridge_fn_method_islandcore_pin(void*_Nonnull ptr, uint
 void uniffi_island_bridge_fn_method_islandcore_register_display_profile(void*_Nonnull ptr, RustBuffer profile, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_REMOVE_SHELF_ITEM
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_REMOVE_SHELF_ITEM
+void uniffi_island_bridge_fn_method_islandcore_remove_shelf_item(void*_Nonnull ptr, int64_t item_id, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_REQUEST_PEEK
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_REQUEST_PEEK
 RustBuffer uniffi_island_bridge_fn_method_islandcore_request_peek(void*_Nonnull ptr, RustBuffer preview, uint64_t now_ms, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_SAVE_NOTE
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_SAVE_NOTE
+RustBuffer uniffi_island_bridge_fn_method_islandcore_save_note(void*_Nonnull ptr, RustBuffer note_id, RustBuffer title, RustBuffer content, int64_t now_secs, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_FN_METHOD_ISLANDCORE_SET_CLIPBOARD_ITEM_PINNED
@@ -712,6 +747,12 @@ void ffi_island_bridge_rust_future_free_void(uint64_t handle
 void ffi_island_bridge_rust_future_complete_void(uint64_t handle, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_ADD_SHELF_ITEM
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_ADD_SHELF_ITEM
+uint16_t uniffi_island_bridge_checksum_method_islandcore_add_shelf_item(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_ADD_STATE_LISTENER
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_ADD_STATE_LISTENER
 uint16_t uniffi_island_bridge_checksum_method_islandcore_add_state_listener(void
@@ -727,6 +768,12 @@ uint16_t uniffi_island_bridge_checksum_method_islandcore_capture_clipboard_item(
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_CLEAR_ACTIVITY
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_CLEAR_ACTIVITY
 uint16_t uniffi_island_bridge_checksum_method_islandcore_clear_activity(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_CLEAR_SHELF
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_CLEAR_SHELF
+uint16_t uniffi_island_bridge_checksum_method_islandcore_clear_shelf(void
     
 );
 #endif
@@ -751,6 +798,12 @@ uint16_t uniffi_island_bridge_checksum_method_islandcore_current_system_telemetr
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_DELETE_CLIPBOARD_ITEM
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_DELETE_CLIPBOARD_ITEM
 uint16_t uniffi_island_bridge_checksum_method_islandcore_delete_clipboard_item(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_DELETE_NOTE
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_DELETE_NOTE
+uint16_t uniffi_island_bridge_checksum_method_islandcore_delete_note(void
     
 );
 #endif
@@ -790,6 +843,18 @@ uint16_t uniffi_island_bridge_checksum_method_islandcore_list_modules(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_LIST_NOTES
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_LIST_NOTES
+uint16_t uniffi_island_bridge_checksum_method_islandcore_list_notes(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_LIST_SHELF_ITEMS
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_LIST_SHELF_ITEMS
+uint16_t uniffi_island_bridge_checksum_method_islandcore_list_shelf_items(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_LIST_TIMER_SESSIONS
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_LIST_TIMER_SESSIONS
 uint16_t uniffi_island_bridge_checksum_method_islandcore_list_timer_sessions(void
@@ -808,9 +873,21 @@ uint16_t uniffi_island_bridge_checksum_method_islandcore_register_display_profil
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_REMOVE_SHELF_ITEM
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_REMOVE_SHELF_ITEM
+uint16_t uniffi_island_bridge_checksum_method_islandcore_remove_shelf_item(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_REQUEST_PEEK
 #define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_REQUEST_PEEK
 uint16_t uniffi_island_bridge_checksum_method_islandcore_request_peek(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_SAVE_NOTE
+#define UNIFFI_FFIDEF_UNIFFI_ISLAND_BRIDGE_CHECKSUM_METHOD_ISLANDCORE_SAVE_NOTE
+uint16_t uniffi_island_bridge_checksum_method_islandcore_save_note(void
     
 );
 #endif

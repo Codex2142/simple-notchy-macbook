@@ -42,9 +42,7 @@ impl SystemTelemetry {
 
     /// Evaluates whether a HUD `PeekPreview` should fire based on changes from `previous`.
     pub fn evaluate_hud_peek(&self, previous: Option<&Self>) -> Option<PeekPreview> {
-        let Some(prev) = previous else {
-            return None;
-        };
+        let prev = previous?;
 
         if self.is_muted != prev.is_muted || self.volume_percent != prev.volume_percent {
             let title = if self.is_muted || self.volume_percent == 0 {

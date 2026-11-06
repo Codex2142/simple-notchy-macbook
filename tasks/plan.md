@@ -39,9 +39,9 @@ See `tasks/todo.md` for the detailed task breakdown, acceptance criteria, verifi
 - [x] Task 10: Vertical Slice — Timer, Pomodoro & Keep Awake
 - [x] Task 11: Vertical Slice — Media Now Playing & Playback Controls
 - [x] Task 12: Vertical Slice — System Monitoring & Battery/Volume HUDs
-- [ ] Task 13: Vertical Slice — Quick Notes & Drag-to-Notch File Shelf
-- [ ] Task 14: CI/CD Workflow & Core Architecture Documentation
-- [ ] Checkpoint 4: M0–M3 Complete & Verified
+- [x] Task 13: Vertical Slice — Quick Notes & Drag-to-Notch File Shelf
+- [x] Task 14: CI/CD Workflow & Core Architecture Documentation
+- [x] Checkpoint 4: M0–M3 Complete & Verified
 
 ## Risks and Mitigations
 

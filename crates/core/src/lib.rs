@@ -12,6 +12,7 @@ use event_bus::{DomainEvent, EventBus};
 use island_common::{AppConfig, IslandError, IslandResult, RetentionPolicy};
 use island_storage::{
     clipboard_repo::{ClipboardItemRecord, ClipboardRepository},
+    notes_shelf_repo::{NoteRecord, ShelfItemRecord},
     repositories::{
         DisplayProfileRecord, DisplayProfileRepository, ModuleSettingRecord,
         ModuleSettingsRepository, SettingsRepository,
@@ -355,6 +356,49 @@ impl AppCoordinator {
             .lock()
             .map_err(|_| IslandError::Internal("Telemetry mutex poisoned".to_string()))?;
         Ok(guard.clone().unwrap_or_default())
+    }
+
+    pub fn save_note(
+        &self,
+        note_id: Option<i64>,
+        title: &str,
+        content: &str,
+        now_secs: i64,
+    ) -> IslandResult<NoteRecord> {
+        self.storage
+            .notes_shelf_repo()
+            .save_note(note_id, title, content, now_secs)
+    }
+
+    pub fn list_notes(&self, limit: usize) -> IslandResult<Vec<NoteRecord>> {
+        self.storage.notes_shelf_repo().list_notes(limit)
+    }
+
+    pub fn delete_note(&self, note_id: i64) -> IslandResult<()> {
+        self.storage.notes_shelf_repo().delete_note(note_id)
+    }
+
+    pub fn add_shelf_item(
+        &self,
+        file_path: &str,
+        display_name: &str,
+        now_secs: i64,
+    ) -> IslandResult<ShelfItemRecord> {
+        self.storage
+            .notes_shelf_repo()
+            .add_shelf_item(file_path, display_name, now_secs)
+    }
+
+    pub fn list_shelf_items(&self) -> IslandResult<Vec<ShelfItemRecord>> {
+        self.storage.notes_shelf_repo().list_shelf_items()
+    }
+
+    pub fn remove_shelf_item(&self, item_id: i64) -> IslandResult<()> {
+        self.storage.notes_shelf_repo().remove_shelf_item(item_id)
+    }
+
+    pub fn clear_shelf(&self) -> IslandResult<()> {
+        self.storage.notes_shelf_repo().clear_shelf()
     }
 
     fn lock_sm(&self) -> IslandResult<std::sync::MutexGuard<'_, IslandStateMachine>> {

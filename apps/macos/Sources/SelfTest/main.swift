@@ -211,6 +211,22 @@ struct IslandSelfTest {
         check(volPeekState.mode == .peek, "Volume change triggers HUD .peek mode")
         check(volPeekState.activePeek?.title == "Volume 65%", "Volume HUD Peek title matches")
 
-        print("==> PASS: All Swift + UniFFI + Window Engine + Settings + Clipboard + Timer + Media + System HUD tests succeeded!")
+        // 11. Task 13: Quick Notes & File Shelf tests
+        let notesShelf = try NotesShelfStore(core: controllerCore)
+        let savedNote = try notesShelf.saveNote(title: "Idea", content: "Ship Project Island M3")
+        check(notesShelf.notes.count == 1, "Expected 1 saved Quick Note")
+        check(savedNote.content == "Ship Project Island M3", "Note content matches")
+
+        let fileURL = URL(fileURLWithPath: "/tmp/project-island-demo.txt")
+        let shelfItem = try notesShelf.addFileToShelf(url: fileURL)
+        check(notesShelf.shelfItems.count == 1, "Expected 1 item in File Shelf")
+        check(shelfItem.displayName == "project-island-demo.txt", "Shelf display name matches")
+
+        try notesShelf.removeShelfItem(shelfItem)
+        check(notesShelf.shelfItems.isEmpty, "Removed item from File Shelf")
+        try notesShelf.deleteNote(savedNote)
+        check(notesShelf.notes.isEmpty, "Deleted Quick Note")
+
+        print("==> PASS: All M0-M3 Swift + UniFFI + Window Engine + Feature Vertical Slices succeeded!")
     }
 }

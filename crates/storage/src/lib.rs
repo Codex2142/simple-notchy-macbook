@@ -1,6 +1,7 @@
 //! SQLite storage engine, migration runner, and repository traits/implementations for Project Island.
 
 pub mod clipboard_repo;
+pub mod notes_shelf_repo;
 pub mod repositories;
 pub mod timer_repo;
 
@@ -13,6 +14,7 @@ const MIGRATION_0001: &str = include_str!("../../../migrations/0001_initial_sche
 const MIGRATION_0002: &str = include_str!("../../../migrations/0002_clipboard.sql");
 const MIGRATION_0003: &str = include_str!("../../../migrations/0003_timers.sql");
 const MIGRATION_0004: &str = include_str!("../../../migrations/0004_media.sql");
+const MIGRATION_0005: &str = include_str!("../../../migrations/0005_notes_shelf.sql");
 
 struct Migration {
     version: i64,
@@ -40,6 +42,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 4,
         name: "0004_media",
         sql: MIGRATION_0004,
+    },
+    Migration {
+        version: 5,
+        name: "0005_notes_shelf",
+        sql: MIGRATION_0005,
     },
 ];
 
