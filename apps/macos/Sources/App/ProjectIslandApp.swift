@@ -2,17 +2,23 @@ import AppKit
 import SwiftUI
 import IslandBridge
 import IslandWindow
+import IslandIntegrations
+import IslandFeatures
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowController: IslandWindowController?
+    private var settingsStore: SettingsStore?
+    private var settingsWindow: NSWindow?
+    private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
         let dbPath = Self.defaultDatabasePath()
         guard let core = try? IslandCore(databasePath: dbPath),
-              let controller = try? IslandWindowController(core: core)
+              let controller = try? IslandWindowController(core: core),
+              let settings = try? SettingsStore(core: core)
         else {
             fputs("Failed to initialize IslandCore\n", stderr)
             return
@@ -21,6 +27,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let rootView = IslandRootView(controller: controller)
         controller.attachRootView(rootView)
         self.windowController = controller
+        self.settingsStore = settings
+        setupMenuBarExtra()
+    }
+
+    private func setupMenuBarExtra() {
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.button?.image = NSImage(systemSymbolName: "rectangle.topthird.inset.filled", accessibilityDescription: "Project Island")
+
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Toggle Island Expansion", action: #selector(toggleIsland), keyEquivalent: "i"))
+        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: "Detach Menu Bar Icon", action: #selector(detachMenuBar), keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Quit Project Island", action: #selector(quitApp), keyEquivalent: "q"))
+        item.menu = menu
+        self.statusItem = item
+    }
+
+    @objc private func toggleIsland() {
+        windowController?.toggleExpandedOrPinned()
+    }
+
+    @objc private func openSettings() {
+        guard let settingsStore else { return }
+        if settingsWindow == nil {
+            let win = NSWindow(
+                contentRect: CGRect(x: 0, y: 0, width: 420, height: 340),
+                styleMask: [.titled, .closable],
+                backing: .buffered,
+                defer: false
+            )
+            win.title = "Project Island Settings"
+            win.center()
+            win.contentView = NSHostingView(rootView: SettingsView(store: settingsStore))
+            settingsWindow = win
+        }
+        settingsWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func detachMenuBar() {
+        if let statusItem {
+            NSStatusBar.system.removeStatusItem(statusItem)
+            self.statusItem = nil
+        }
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
     }
 
     static func defaultDatabasePath() -> String {

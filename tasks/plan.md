@@ -30,7 +30,7 @@ See `tasks/todo.md` for the detailed task breakdown, acceptance criteria, verifi
 - [x] Checkpoint 2: End-to-End Dynamic Island Shell
 
 ### Phase 3: M2 Application Core (Settings, Permissions & Keychain)
-- [ ] Task 7: Settings UI, Menu Bar Item & Keychain/Permission Adapters
+- [x] Task 7: Settings UI, Menu Bar Item & Keychain/Permission Adapters
 
 ### Phase 4: M3 Core Feature Vertical Slices
 - [ ] Task 8: Vertical Slice — Clipboard Manager Backend

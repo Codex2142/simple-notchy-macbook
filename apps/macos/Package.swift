@@ -17,6 +17,8 @@ let package = Package(
     products: [
         .library(name: "IslandBridge", targets: ["IslandBridge"]),
         .library(name: "IslandWindow", targets: ["IslandWindow"]),
+        .library(name: "IslandIntegrations", targets: ["IslandIntegrations"]),
+        .library(name: "IslandFeatures", targets: ["IslandFeatures"]),
         .executable(name: "ProjectIslandApp", targets: ["ProjectIslandApp"]),
         .executable(name: "IslandSelfTest", targets: ["IslandSelfTest"]),
     ],
@@ -39,19 +41,29 @@ let package = Package(
             dependencies: ["IslandBridge"],
             path: "Sources/Window"
         ),
+        .target(
+            name: "IslandIntegrations",
+            dependencies: ["IslandBridge"],
+            path: "Sources/Integrations"
+        ),
+        .target(
+            name: "IslandFeatures",
+            dependencies: ["IslandBridge", "IslandWindow", "IslandIntegrations"],
+            path: "Sources/Features"
+        ),
         .executableTarget(
             name: "ProjectIslandApp",
-            dependencies: ["IslandWindow", "IslandBridge"],
+            dependencies: ["IslandWindow", "IslandBridge", "IslandIntegrations", "IslandFeatures"],
             path: "Sources/App"
         ),
         .executableTarget(
             name: "IslandSelfTest",
-            dependencies: ["IslandWindow", "IslandBridge"],
+            dependencies: ["IslandWindow", "IslandBridge", "IslandIntegrations", "IslandFeatures"],
             path: "Sources/SelfTest"
         ),
         .testTarget(
             name: "WindowTests",
-            dependencies: ["IslandWindow", "IslandBridge"],
+            dependencies: ["IslandWindow", "IslandBridge", "IslandIntegrations", "IslandFeatures"],
             path: "Tests/WindowTests"
         ),
     ]

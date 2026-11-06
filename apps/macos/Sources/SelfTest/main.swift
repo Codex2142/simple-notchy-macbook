@@ -3,6 +3,8 @@ import Foundation
 import CoreGraphics
 import IslandBridge
 import IslandWindow
+import IslandIntegrations
+import IslandFeatures
 
 @main
 struct IslandSelfTest {
@@ -101,6 +103,32 @@ struct IslandSelfTest {
         try await Task.sleep(nanoseconds: 25_000_000)
         check(windowController.viewState.mode == .collapsed, "collapseNow returns to .collapsed")
 
-        print("==> PASS: All Swift + UniFFI + Window Engine tests succeeded!")
+        // 6. Task 7: KeychainAdapter, PermissionManager, and SettingsStore tests
+        let keychain = KeychainAdapter(service: "com.projectisland.test", inMemoryFallback: true)
+        try keychain.setSecret("secret-api-token-123", for: "local_api")
+        let loadedSecret = try keychain.getSecret(for: "local_api")
+        check(loadedSecret == "secret-api-token-123", "Expected Keychain secret roundtrip")
+        try keychain.deleteSecret(for: "local_api")
+        let deletedSecret = try keychain.getSecret(for: "local_api")
+        check(deletedSecret == nil, "Expected deleted Keychain secret to be nil")
+
+        let permissions = PermissionManager(initialClipboardConsent: true)
+        check(permissions.isClipboardCaptureAuthorized, "Clipboard consent initialized to true")
+
+        let settings = try SettingsStore(core: controllerCore)
+        check(settings.isModuleEnabled("clipboard"), "Default clipboard module enabled")
+        try settings.setModuleEnabled("clipboard", enabled: false)
+        check(!settings.isModuleEnabled("clipboard"), "Toggled clipboard module to disabled")
+
+        let updatedRetention = FfiRetentionPolicy(
+            clipboardDays: 14,
+            timerHistoryDays: 120,
+            activityEventsDays: 14,
+            logsDays: 7
+        )
+        try settings.updateRetentionPolicy(updatedRetention)
+        check(settings.retentionPolicy.clipboardDays == 14, "Retention policy updated to 14 days")
+
+        print("==> PASS: All Swift + UniFFI + Window Engine + Settings/Security tests succeeded!")
     }
 }

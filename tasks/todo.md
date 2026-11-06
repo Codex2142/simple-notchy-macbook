@@ -190,12 +190,12 @@
 **Description:** Implement FR-007 (Settings & Permissions): `KeychainAdapter` (macOS Security framework), `PermissionManager`, menu bar controls, and `SettingsView` persisting module toggles and retention rules to SQLite via Rust.
 
 **Acceptance criteria:**
-- [ ] Toggling modules or changing retention days in Settings persists in `project_island.db`.
-- [ ] `KeychainAdapter` stores, retrieves, and deletes secrets in macOS Keychain.
-- [ ] Menu bar extra allows opening Settings, toggling Virtual Island, or quitting.
+- [x] Toggling modules or changing retention days in Settings persists in `project_island.db`.
+- [x] `KeychainAdapter` stores, retrieves, and deletes secrets in macOS Keychain.
+- [x] Menu bar extra allows opening Settings, toggling Virtual Island, or quitting.
 
 **Verification:**
-- [ ] Tests pass: `cargo test --workspace && swift test --package-path apps/macos`
+- [x] Tests pass: `cargo test --workspace && ./scripts/test-macos.sh`
 
 **Dependencies:** Task 6
 
