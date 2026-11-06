@@ -1,0 +1,23 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# macOS & Swift / Xcode
+.DS_Store
+.build/
+apps/macos/.build/
+apps/macos/.swiftpm/
+DerivedData/
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Local SQLite DB & Logs
+*.db
+*.db-shm
+*.db-wal
+logs/
+
+# Env & Secrets
+.env
+.env.*

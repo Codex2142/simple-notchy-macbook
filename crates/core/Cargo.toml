@@ -1,0 +1,12 @@
+[package]
+name = "island-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+island-common = { path = "../common" }
+island-storage = { path = "../storage" }
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
