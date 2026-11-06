@@ -38,6 +38,11 @@ public struct IslandRootView: View {
                     .fill(Color.black)
 
                 contentForMode
+
+                // Subtle bottom progress bar for active timer when Island is not hovered / not expanded
+                if !isExpandedLike && (keepAwakeAdapter.timerState == .running || keepAwakeAdapter.timerState == .paused || keepAwakeAdapter.timerState == .completed) {
+                    collapsedTimerProgressBar
+                }
             }
             .frame(width: activePillSize.width, height: activePillSize.height, alignment: .top)
             .clipShape(NotchShape(topRadius: 0, bottomRadius: cornerRadius))
@@ -52,6 +57,27 @@ public struct IslandRootView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .ignoresSafeArea()
         .animation(.spring(response: 0.30, dampingFraction: 0.84), value: controller.viewState.mode)
+    }
+
+    private var collapsedTimerProgressBar: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(height: 2.2)
+
+                    Rectangle()
+                        .fill(
+                            keepAwakeAdapter.timerState == .completed ? Color.green :
+                            (keepAwakeAdapter.timerState == .paused ? Color.orange : Color.cyan)
+                        )
+                        .frame(width: max(0, geo.size.width * CGFloat(keepAwakeAdapter.timerProgress)), height: 2.2)
+                }
+            }
+            .frame(height: 2.2)
+        }
     }
 
     private var isExpandedLike: Bool {

@@ -10,10 +10,12 @@ import IslandBridge
 public final class PasteboardMonitor: ObservableObject {
     @Published public private(set) var items: [FfiClipboardItem] = []
     @Published public var searchQuery: String = ""
+    @Published public private(set) var copiedItemId: Int64? = nil
 
     private let core: IslandCore
     private var lastChangeCount: Int
     private var pollTimer: Timer?
+    private var copyFeedbackTask: Task<Void, Never>?
     public var isEnabled: Bool = true
 
     public init(core: IslandCore) throws {
@@ -100,10 +102,23 @@ public final class PasteboardMonitor: ObservableObject {
         try refreshItems()
     }
 
-    public func copyToPasteboard(_ item: FfiClipboardItem) {
+    @discardableResult
+    public func copyToPasteboard(_ item: FfiClipboardItem) -> Bool {
         let pb = NSPasteboard.general
         pb.clearContents()
-        pb.setString(item.textContent, forType: .string)
-        lastChangeCount = pb.changeCount
+        let success = pb.setString(item.textContent, forType: .string)
+        if success {
+            lastChangeCount = pb.changeCount
+            copyFeedbackTask?.cancel()
+            copiedItemId = item.id
+            copyFeedbackTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                guard !Task.isCancelled, let self else { return }
+                if self.copiedItemId == item.id {
+                    self.copiedItemId = nil
+                }
+            }
+        }
+        return success
     }
 }

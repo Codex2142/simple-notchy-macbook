@@ -105,6 +105,10 @@ struct IslandSelfTest {
         let expandedLevel = WindowLevelManager.windowLevel(for: .expanded)
         check(expandedLevel > collapsedLevel, "Expanded window level should sit above collapsed level")
 
+        let testPanel = IslandPanel(contentRect: CGRect(x: 0, y: 0, width: 200, height: 40))
+        check(testPanel.collectionBehavior.contains(.moveToActiveSpace), "Panel must have .moveToActiveSpace for active desktop only")
+        check(!testPanel.collectionBehavior.contains(.canJoinAllSpaces), "Panel must NOT have .canJoinAllSpaces to prevent sliding during Spaces swipe")
+
         let hover = HoverController(hoverInDelayMs: 20, hoverOutGraceMs: 20)
         var detectedSwipe: HoverController.SwipeDirection?
         hover.onSwipeGesture = { dir in detectedSwipe = dir }
@@ -159,6 +163,18 @@ struct IslandSelfTest {
         check(pasteboard.items.count == 1, "Expected 1 captured clipboard item")
         check(captured.textContent == "https://example.com/project-island", "Clipboard text matches")
 
+        let copySuccess = pasteboard.copyToPasteboard(captured)
+        check(copySuccess, "copyToPasteboard should succeed")
+        check(pasteboard.copiedItemId == captured.id, "copiedItemId should match copied item")
+
+        let secondItem = try pasteboard.captureCandidate(
+            text: "Second snippet",
+            sourceApp: "Notes"
+        )
+        pasteboard.copyToPasteboard(secondItem)
+        check(pasteboard.copiedItemId == secondItem.id, "Copying another item updates active feedback to the new item")
+        try pasteboard.deleteItem(secondItem)
+
         // Verify ConcealedType is blocked
         var concealedBlocked = false
         do {
@@ -185,6 +201,35 @@ struct IslandSelfTest {
 
         // 8. Task 10: Timer, Pomodoro & KeepAwake Live Activity tests
         let keepAwake = try KeepAwakeAdapter(core: controllerCore)
+
+        // Custom timer input validation tests
+        let zeroRejected = keepAwake.startCustomTimer(hours: 0, minutes: 0, seconds: 0)
+        check(!zeroRejected, "Zero duration timer must be rejected")
+        let negativeRejected = keepAwake.startCustomTimer(hours: -1, minutes: 0, seconds: 0)
+        check(!negativeRejected, "Negative duration timer must be rejected")
+
+        // Monotonic timer controls: Start, Pause, Resume, Reset
+        let validStarted = keepAwake.startCustomTimer(hours: 0, minutes: 1, seconds: 30)
+        check(validStarted, "Valid 90s timer must be accepted")
+        check(keepAwake.timerState == .running, "Timer state should be .running")
+        check(keepAwake.totalDurationSecs == 90, "Total duration should be 90s")
+        check(keepAwake.remainingSeconds <= 90, "Remaining seconds <= 90")
+
+        keepAwake.pauseTimer()
+        check(keepAwake.timerState == .paused, "Timer state should be .paused")
+        let pausedRemaining = keepAwake.remainingSeconds
+
+        try await Task.sleep(nanoseconds: 100_000_000)
+        check(keepAwake.remainingSeconds == pausedRemaining, "Pausing timer must freeze remaining seconds")
+
+        keepAwake.resumeTimer()
+        check(keepAwake.timerState == .running, "Resumed timer should be .running")
+
+        keepAwake.resetTimer()
+        check(keepAwake.timerState == .idle, "Reset timer should return to .idle")
+        check(keepAwake.timerProgress == 0.0, "Reset timer progress must return to 0.0")
+        check(keepAwake.remainingSeconds == 0, "Reset timer remainingSeconds must be 0")
+
         let session = try keepAwake.startSession(
             kind: "pomodoro",
             label: "Deep Work",

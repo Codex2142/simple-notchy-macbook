@@ -58,6 +58,8 @@ public final class IslandWindowController: ObservableObject {
     private var localMouseMonitor: Any?
     private var globalMouseMonitor: Any?
     private var updateHitSizeClosure: ((CGSize) -> Void)?
+    private var spaceObserver: NSObjectProtocol?
+    private var occlusionObserver: NSObjectProtocol?
 
     public init(
         core: IslandCore,
@@ -75,6 +77,16 @@ public final class IslandWindowController: ObservableObject {
         bindCoreEvents()
         bindHoverAndGestures()
         bindDisplayChanges()
+        bindSpaceEvents()
+    }
+
+    deinit {
+        if let spaceObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(spaceObserver)
+        }
+        if let occlusionObserver {
+            NotificationCenter.default.removeObserver(occlusionObserver)
+        }
     }
 
     /// Creates and displays the floating `IslandPanel` with the provided SwiftUI root view.
@@ -102,6 +114,18 @@ public final class IslandWindowController: ObservableObject {
         islandPanel.contentView = hostingView
         islandPanel.orderFrontRegardless()
         self.panel = islandPanel
+
+        occlusionObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didChangeOcclusionStateNotification,
+            object: islandPanel,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, let panel = self.panel else { return }
+                // Hide panel if window is not on active space to prevent dragging across desktop transitions
+                panel.alphaValue = panel.isOnActiveSpace ? 1.0 : 0.0
+            }
+        }
 
         installMouseMonitors()
     }
@@ -208,6 +232,28 @@ public final class IslandWindowController: ObservableObject {
                 self.animatePanelToCurrentMode(geometry: display.geometry, mode: self.viewState.mode)
             }
             .store(in: &cancellables)
+    }
+
+    private func bindSpaceEvents() {
+        spaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.handleActiveSpaceChanged()
+            }
+        }
+    }
+
+    public func handleActiveSpaceChanged() {
+        displayDetector.refreshDisplays()
+        guard let panel else { return }
+        if let geometry = activeGeometry {
+            panel.setFrame(geometry.expandedFrame, display: true)
+        }
+        panel.orderFrontRegardless()
+        panel.alphaValue = 1.0
     }
 
     private func applyViewState(_ newState: FfiIslandViewState) {

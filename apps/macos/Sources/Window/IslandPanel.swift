@@ -63,9 +63,8 @@ public final class IslandPanel: NSPanel {
         self.isFloatingPanel = true
         self.level = WindowLevelManager.windowLevel(for: .collapsed)
         self.collectionBehavior = [
-            .canJoinAllSpaces,
+            .moveToActiveSpace,
             .fullScreenAuxiliary,
-            .stationary,
             .ignoresCycle
         ]
         self.isOpaque = false

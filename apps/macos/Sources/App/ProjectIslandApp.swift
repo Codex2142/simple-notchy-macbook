@@ -59,20 +59,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.image = NSImage(systemSymbolName: "rectangle.topthird.inset.filled", accessibilityDescription: "Project Island")
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Toggle Island Expansion", action: #selector(toggleIsland), keyEquivalent: "i"))
-        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ","))
-        menu.addItem(NSMenuItem(title: "Detach Menu Bar Icon", action: #selector(detachMenuBar), keyEquivalent: ""))
+        menu.autoenablesItems = false
+
+        let toggleItem = NSMenuItem(title: "Toggle Island Expansion", action: #selector(toggleIsland(_:)), keyEquivalent: "i")
+        toggleItem.target = self
+        menu.addItem(toggleItem)
+
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings(_:)), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
+        let detachItem = NSMenuItem(title: "Detach Menu Bar Icon", action: #selector(detachMenuBar(_:)), keyEquivalent: "")
+        detachItem.target = self
+        menu.addItem(detachItem)
+
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit Project Island", action: #selector(quitApp), keyEquivalent: "q"))
+
+        let quitItem = NSMenuItem(title: "Quit Project Island", action: #selector(quitApp(_:)), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+
         item.menu = menu
         self.statusItem = item
     }
 
-    @objc private func toggleIsland() {
+    @objc private func toggleIsland(_ sender: Any?) {
         windowController?.toggleExpandedOrPinned()
     }
 
-    @objc private func openSettings() {
+    @objc private func openSettings(_ sender: Any?) {
         guard let settingsStore else { return }
         if settingsWindow == nil {
             let win = NSWindow(
@@ -90,14 +105,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    @objc private func detachMenuBar() {
-        if let statusItem {
+    @objc private func detachMenuBar(_ sender: Any?) {
+        // Defer removal to the next runloop turn so the active NSMenuTrackingSession finishes dismissal cleanly
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let statusItem = self.statusItem else { return }
+            statusItem.menu = nil
             NSStatusBar.system.removeStatusItem(statusItem)
             self.statusItem = nil
         }
     }
 
-    @objc private func quitApp() {
+    @objc private func quitApp(_ sender: Any?) {
         NSApp.terminate(nil)
     }
 
@@ -112,9 +130,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 @main
 struct ProjectIslandApp {
+    // Retain the delegate strongly to prevent deallocation during app lifetime
+    private static var strongDelegate: AppDelegate?
+
     static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()
+        strongDelegate = delegate
         app.delegate = delegate
         app.run()
     }
