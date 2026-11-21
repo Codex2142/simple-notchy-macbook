@@ -17,9 +17,16 @@ public enum WindowLevelManager {
 }
 
 /// Custom `NSHostingView` that restricts mouse hit-testing to the active Dynamic Island pill size,
-/// so clicks on the transparent area around the collapsed/peek pill pass through to the menu bar and apps below.
+/// so clicks on the transparent area around the collapsed/peek pill pass through to the menu bar and apps below,
+/// and acts as an AppKit `NSDraggingDestination` for universal drag-to-notch Shelf drops.
 public final class IslandHostingView<Content: View>: NSHostingView<Content> {
     public var activeHitSize: CGSize = .zero
+    public var onValidateDrag: ((NSPasteboard) -> Bool)?
+    public var onDragEntered: (() -> Void)?
+    public var onDragExited: (() -> Void)?
+    public var onPerformDrop: ((NSPasteboard) -> Bool)?
+
+    private var isValidDragActive: Bool = false
 
     override public func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         true
@@ -45,6 +52,53 @@ public final class IslandHostingView<Content: View>: NSHostingView<Content> {
             return nil
         }
         return super.hitTest(point)
+    }
+
+    // MARK: - NSDraggingDestination
+
+    override public func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        // Ignore drags originating from inside Project Island itself (e.g., dragging an item out of Shelf).
+        guard sender.draggingSource == nil else {
+            isValidDragActive = false
+            return []
+        }
+        let valid = onValidateDrag?(sender.draggingPasteboard) ?? false
+        isValidDragActive = valid
+        if valid {
+            onDragEntered?()
+            return .copy
+        }
+        return []
+    }
+
+    override public func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        guard sender.draggingSource == nil, isValidDragActive else {
+            return []
+        }
+        return .copy
+    }
+
+    override public func draggingExited(_ sender: NSDraggingInfo?) {
+        if isValidDragActive {
+            isValidDragActive = false
+            onDragExited?()
+        }
+    }
+
+    override public func draggingEnded(_ sender: NSDraggingInfo) {
+        if isValidDragActive {
+            isValidDragActive = false
+            onDragExited?()
+        }
+    }
+
+    override public func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        defer {
+            isValidDragActive = false
+            onDragExited?()
+        }
+        guard sender.draggingSource == nil else { return false }
+        return onPerformDrop?(sender.draggingPasteboard) ?? false
     }
 }
 

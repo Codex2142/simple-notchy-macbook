@@ -57,11 +57,17 @@ public final class IslandWindowController: ObservableObject {
     @Published public private(set) var viewState: FfiIslandViewState
     @Published public private(set) var activeGeometry: NotchGeometry?
     @Published public var selectedTab: IslandTab = .home
+    @Published public private(set) var isDragTargeted: Bool = false
 
     public let core: IslandCore
     public let displayDetector: DisplayDetector
     public let hoverController: HoverController
     public private(set) var panel: IslandPanel?
+
+    public var registeredShelfDragTypes: [NSPasteboard.PasteboardType] = []
+    public var isShelfDropEnabled: (() -> Bool)?
+    public var onValidateShelfPasteboard: ((NSPasteboard) -> Bool)?
+    public var onShelfDropPasteboard: ((NSPasteboard) -> Bool)?
 
     private var cancellables = Set<AnyCancellable>()
     private var peekAutoCollapseTask: Task<Void, Never>?
@@ -69,6 +75,7 @@ public final class IslandWindowController: ObservableObject {
     private var localMouseMonitor: Any?
     private var globalMouseMonitor: Any?
     private var updateHitSizeClosure: ((CGSize) -> Void)?
+    private var registerDragTypesClosure: (([NSPasteboard.PasteboardType]) -> Void)?
     private var spaceObserver: NSObjectProtocol?
     private var occlusionObserver: NSObjectProtocol?
 
@@ -122,6 +129,28 @@ public final class IslandWindowController: ObservableObject {
         self.updateHitSizeClosure = { [weak hostingView] newSize in
             hostingView?.activeHitSize = newSize
         }
+        self.registerDragTypesClosure = { [weak hostingView] types in
+            hostingView?.registerForDraggedTypes(types)
+        }
+        if !registeredShelfDragTypes.isEmpty {
+            hostingView.registerForDraggedTypes(registeredShelfDragTypes)
+        }
+        hostingView.onValidateDrag = { [weak self] pasteboard in
+            guard let self else { return false }
+            if let isEnabled = self.isShelfDropEnabled, !isEnabled() {
+                return false
+            }
+            return self.onValidateShelfPasteboard?(pasteboard) ?? false
+        }
+        hostingView.onDragEntered = { [weak self] in
+            self?.handleDragEntered()
+        }
+        hostingView.onDragExited = { [weak self] in
+            self?.handleDragExited()
+        }
+        hostingView.onPerformDrop = { [weak self] pasteboard in
+            self?.handlePerformDrop(pasteboard: pasteboard) ?? false
+        }
         islandPanel.contentView = hostingView
         islandPanel.orderFrontRegardless()
         self.panel = islandPanel
@@ -139,6 +168,47 @@ public final class IslandWindowController: ObservableObject {
         }
 
         installMouseMonitors()
+    }
+
+    /// Configures AppKit drag-and-drop hooks for the File Shelf.
+    public func configureShelfDrop(
+        dragTypes: [NSPasteboard.PasteboardType],
+        isEnabled: @escaping () -> Bool,
+        validate: @escaping (NSPasteboard) -> Bool,
+        performDrop: @escaping (NSPasteboard) -> Bool
+    ) {
+        self.registeredShelfDragTypes = dragTypes
+        self.isShelfDropEnabled = isEnabled
+        self.onValidateShelfPasteboard = validate
+        self.onShelfDropPasteboard = performDrop
+        self.registerDragTypesClosure?(dragTypes)
+    }
+
+    /// Called when a valid File/Media drag enters the Island/Notch area.
+    /// Auto-expands the Island and switches directly to the Shelf tab.
+    public func handleDragEntered() {
+        let now = Self.nowMs()
+        isDragTargeted = true
+        hoverController.cancelPendingTransitions()
+        selectedTab = .shelf
+        _ = try? core.setInteracting(interacting: true, nowMs: now)
+        if viewState.mode != .expanded && viewState.mode != .pinned {
+            _ = try? core.expand(nowMs: now)
+        }
+    }
+
+    public func handleDragExited() {
+        isDragTargeted = false
+    }
+
+    public func handlePerformDrop(pasteboard: NSPasteboard) -> Bool {
+        isDragTargeted = false
+        guard let handler = onShelfDropPasteboard else { return false }
+        let accepted = handler(pasteboard)
+        if accepted {
+            selectedTab = .shelf
+        }
+        return accepted
     }
 
     public func handlePointerEntered() {

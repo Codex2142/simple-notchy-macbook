@@ -388,6 +388,135 @@ struct IslandSelfTest {
         try notesShelf.deleteNote(savedNote)
         check(notesShelf.notes.isEmpty, "Deleted Quick Note")
 
-        print("==> PASS: All M0-M3 Swift + UniFFI + Window Engine + Feature Vertical Slices succeeded!")
+        // 12. Universal File & Media Shelf Drag-and-Drop tests
+        let tempRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("project-island-shelf-test-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempRoot) }
+
+        let userFileA = tempRoot.appendingPathComponent("vscode-file.swift")
+        let userFileB = tempRoot.appendingPathComponent("second-file.md")
+        try "print(\"hello\")".write(to: userFileA, atomically: true, encoding: .utf8)
+        try "# Notes".write(to: userFileB, atomically: true, encoding: .utf8)
+
+        let testStaging = ShelfStagingManager(baseDirectory: tempRoot.appendingPathComponent("ShelfStaging", isDirectory: true))
+        let testShelfStore = try NotesShelfStore(core: controllerCore, stagingManager: testStaging)
+
+        // 12a. VS Code / Electron raw UTF-8 Data `public.file-url`
+        let vscodePb = NSPasteboard(name: NSPasteboard.Name("test.vscode.\(UUID().uuidString)"))
+        vscodePb.clearContents()
+        let vscodeItem = NSPasteboardItem()
+        vscodeItem.setData(userFileA.absoluteString.data(using: .utf8)!, forType: .fileURL)
+        vscodePb.writeObjects([vscodeItem])
+        check(ShelfDropResolver.canAccept(pasteboard: vscodePb), "VS Code raw Data public.file-url must be accepted")
+        let vscodeURLs = ShelfDropResolver.extractLocalFileURLs(from: vscodePb)
+        check(vscodeURLs.count == 1 && vscodeURLs.first?.path == userFileA.standardizedFileURL.path, "VS Code raw Data file URL resolved accurately")
+
+        // 12b. Legacy NSFilenamesPboardType multi-file payload
+        let multiPb = NSPasteboard(name: NSPasteboard.Name("test.multi.\(UUID().uuidString)"))
+        multiPb.clearContents()
+        multiPb.declareTypes([ShelfDropResolver.fileNamesPboardType], owner: nil)
+        multiPb.setPropertyList([userFileA.path, userFileB.path, userFileA.path], forType: ShelfDropResolver.fileNamesPboardType)
+        let multiURLs = ShelfDropResolver.extractLocalFileURLs(from: multiPb)
+        check(multiURLs.count == 2, "NSFilenamesPboardType should extract and deduplicate 2 files, got \(multiURLs.count)")
+
+        // 12c. Plain text path vs arbitrary text & non-image URL rejection, plus browser <img> acceptance
+        let textPathPb = NSPasteboard(name: NSPasteboard.Name("test.textpath.\(UUID().uuidString)"))
+        textPathPb.clearContents()
+        textPathPb.setString(userFileA.path, forType: .string)
+        check(ShelfDropResolver.canAccept(pasteboard: textPathPb), "Existing local path string should be accepted")
+
+        let randomTextPb = NSPasteboard(name: NSPasteboard.Name("test.randomtext.\(UUID().uuidString)"))
+        randomTextPb.clearContents()
+        randomTextPb.setString("just some plain text snippet", forType: .string)
+        check(!ShelfDropResolver.canAccept(pasteboard: randomTextPb), "Arbitrary plain text must be rejected")
+
+        let webLinkPb = NSPasteboard(name: NSPasteboard.Name("test.weblink.\(UUID().uuidString)"))
+        webLinkPb.clearContents()
+        webLinkPb.setString("https://example.com/articles/swift", forType: .URL)
+        check(!ShelfDropResolver.canAccept(pasteboard: webLinkPb), "Non-image web URL must be rejected")
+
+        let webImgHtmlPb = NSPasteboard(name: NSPasteboard.Name("test.webimg.\(UUID().uuidString)"))
+        webImgHtmlPb.clearContents()
+        webImgHtmlPb.setString("<img src=\"https://cdn.example.com/photo?id=42\" alt=\"demo\">", forType: .html)
+        check(ShelfDropResolver.canAccept(pasteboard: webImgHtmlPb), "Browser HTML <img> drag must be accepted")
+        check(ShelfDropResolver.extractRemoteImageURLs(from: webImgHtmlPb).count == 1, "Browser HTML <img> URL extracted")
+
+        // 12d. Raw PNG image staging + safe cleanup (must NOT delete external user files)
+        let bmpRep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: 2,
+            pixelsHigh: 2,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        )!
+        let pngBytes = bmpRep.representation(using: .png, properties: [:])!
+        let pngPb = NSPasteboard(name: NSPasteboard.Name("test.png.\(UUID().uuidString)"))
+        pngPb.clearContents()
+        pngPb.setData(pngBytes, forType: .png)
+        check(ShelfDropResolver.canAccept(pasteboard: pngPb), "Raw PNG image data must be accepted")
+        let dropHandled = testShelfStore.handleDroppedPasteboard(pngPb)
+        check(dropHandled, "handleDroppedPasteboard should accept raw PNG")
+        try await Task.sleep(nanoseconds: 100_000_000)
+        check(testShelfStore.shelfItems.count == 1, "Staged PNG should appear in shelfItems")
+        let stagedPath = testShelfStore.shelfItems[0].filePath
+        check(testStaging.isStagedFile(path: stagedPath), "Staged PNG path must reside inside ShelfStaging")
+        check(FileManager.default.fileExists(atPath: stagedPath), "Staged PNG file must exist on disk")
+
+        let localShelfEntry = try testShelfStore.addFileToShelf(url: userFileA)
+        try testShelfStore.removeShelfItem(testShelfStore.shelfItems.first(where: { $0.filePath == stagedPath })!)
+        check(!FileManager.default.fileExists(atPath: stagedPath), "Removing staged item must delete file from ShelfStaging")
+        try testShelfStore.removeShelfItem(localShelfEntry)
+        check(FileManager.default.fileExists(atPath: userFileA.path), "Removing local file item must NEVER delete original user file")
+
+        // 12e. Drag-to-Notch auto-expand & auto-switch to Shelf tab
+        let dragCore = try IslandCore.newInMemory()
+        let dragController = try IslandWindowController(core: dragCore)
+        check(dragController.viewState.mode == .collapsed, "Drag test controller starts collapsed")
+        check(dragController.selectedTab == .home, "Drag test controller starts on .home tab")
+        dragController.handleDragEntered()
+        try await Task.sleep(nanoseconds: 50_000_000)
+        check(dragController.isDragTargeted, "handleDragEntered sets isDragTargeted = true")
+        check(dragController.selectedTab == .shelf, "handleDragEntered auto-switches to .shelf tab")
+        check(dragController.viewState.mode == .expanded, "handleDragEntered auto-expands collapsed Island")
+        dragController.handleDragExited()
+        check(!dragController.isDragTargeted, "handleDragExited clears isDragTargeted")
+
+        // 12f. Multi-item Drag-IN (multi-line public.uri-list, mixed local + raw PNG batch) & Multi-select Drag-OUT
+        let uriListPb = NSPasteboard(name: NSPasteboard.Name("test.urilist.\(UUID().uuidString)"))
+        uriListPb.clearContents()
+        let uriListItem = NSPasteboardItem()
+        uriListItem.setString("# comment\n\(userFileA.absoluteString)\n\(userFileB.absoluteString)\n", forType: ShelfDropResolver.uriListPboardType)
+        uriListPb.writeObjects([uriListItem])
+        let uriListURLs = ShelfDropResolver.extractLocalFileURLs(from: uriListPb)
+        check(uriListURLs.count == 2, "public.uri-list multi-file drop should extract 2 files, got \(uriListURLs.count)")
+
+        let mixedPb = NSPasteboard(name: NSPasteboard.Name("test.mixed.\(UUID().uuidString)"))
+        mixedPb.clearContents()
+        let mixedFileItem = NSPasteboardItem()
+        mixedFileItem.setData(userFileA.absoluteString.data(using: .utf8)!, forType: .fileURL)
+        let mixedImageItem = NSPasteboardItem()
+        mixedImageItem.setData(pngBytes, forType: .png)
+        mixedPb.writeObjects([mixedFileItem, mixedImageItem])
+        let mixedHandled = testShelfStore.handleDroppedPasteboard(mixedPb)
+        check(mixedHandled, "Mixed local file + raw PNG pasteboard must be accepted")
+        try await Task.sleep(nanoseconds: 100_000_000)
+        check(testShelfStore.shelfItems.count == 2, "Mixed batch should add both local file and staged PNG, got \(testShelfStore.shelfItems.count)")
+
+        // Multi-select Drag-OUT helper
+        check(testShelfStore.selectedOrAllShelfURLs().count == 2, "With no selection, selectedOrAllShelfURLs returns all 2 items")
+        let firstItem = testShelfStore.shelfItems[0]
+        testShelfStore.toggleShelfSelection(firstItem)
+        check(testShelfStore.selectedShelfItemIDs.count == 1, "Toggling selection selects 1 item")
+        check(testShelfStore.selectedOrAllShelfURLs().count == 1, "With 1 selected, selectedOrAllShelfURLs returns only that 1 item")
+        try testShelfStore.clearShelf()
+        check(testShelfStore.shelfItems.isEmpty && testShelfStore.selectedShelfItemIDs.isEmpty, "clearShelf empties items and selection")
+
+        print("==> PASS: All M0-M3 Swift + UniFFI + Window Engine + Feature Vertical Slices + Shelf Drag-and-Drop succeeded!")
     }
 }

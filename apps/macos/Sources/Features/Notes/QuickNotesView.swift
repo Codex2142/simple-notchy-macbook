@@ -1,25 +1,32 @@
+import AppKit
 import Combine
 import Foundation
 import IslandBridge
+import IslandIntegrations
 import SwiftUI
 
 @MainActor
 public final class NotesShelfStore: ObservableObject {
     @Published public private(set) var notes: [FfiNoteItem] = []
     @Published public private(set) var shelfItems: [FfiShelfItem] = []
+    @Published public var selectedShelfItemIDs: Set<Int64> = []
     @Published public var draftTitle: String = ""
     @Published public var draftContent: String = ""
 
     private let core: IslandCore
+    public let stagingManager: ShelfStagingManager
 
-    public init(core: IslandCore) throws {
+    public init(core: IslandCore, stagingManager: ShelfStagingManager = .shared) throws {
         self.core = core
+        self.stagingManager = stagingManager
         try refresh()
     }
 
     public func refresh() throws {
         self.notes = try core.listNotes(limit: 30)
         self.shelfItems = try core.listShelfItems()
+        let validIDs = Set(self.shelfItems.map(\.id))
+        self.selectedShelfItemIDs = self.selectedShelfItemIDs.intersection(validIDs)
     }
 
     @discardableResult
@@ -54,14 +61,65 @@ public final class NotesShelfStore: ObservableObject {
         return added
     }
 
+    @discardableResult
+    public func addFilesToShelf(urls: [URL], nowSecs: Int64? = nil) throws -> [FfiShelfItem] {
+        guard !urls.isEmpty else { return [] }
+        let ts = nowSecs ?? Int64(Date().timeIntervalSince1970)
+        var addedItems: [FfiShelfItem] = []
+        for url in urls {
+            let added = try core.addShelfItem(
+                filePath: url.path,
+                displayName: url.lastPathComponent,
+                nowSecs: ts
+            )
+            addedItems.append(added)
+        }
+        try refresh()
+        return addedItems
+    }
+
+    public func toggleShelfSelection(_ item: FfiShelfItem) {
+        if selectedShelfItemIDs.contains(item.id) {
+            selectedShelfItemIDs.remove(item.id)
+        } else {
+            selectedShelfItemIDs.insert(item.id)
+        }
+    }
+
+    public func clearShelfSelection() {
+        selectedShelfItemIDs.removeAll()
+    }
+
+    /// Returns file URLs for currently selected Shelf items, or all Shelf items if none are selected.
+    public func selectedOrAllShelfURLs() -> [URL] {
+        let targets = selectedShelfItemIDs.isEmpty
+            ? shelfItems
+            : shelfItems.filter { selectedShelfItemIDs.contains($0.id) }
+        return targets.map { URL(fileURLWithPath: $0.filePath) }
+    }
+
     public func removeShelfItem(_ item: FfiShelfItem) throws {
         try core.removeShelfItem(itemId: item.id)
+        selectedShelfItemIDs.remove(item.id)
+        stagingManager.cleanupStagedFileIfOwned(path: item.filePath)
         try refresh()
     }
 
     public func clearShelf() throws {
         try core.clearShelf()
+        selectedShelfItemIDs.removeAll()
+        stagingManager.cleanupAllStagedFiles()
         try refresh()
+    }
+
+    @discardableResult
+    public func handleDroppedPasteboard(_ pasteboard: NSPasteboard) -> Bool {
+        ShelfDropResolver.resolveDrop(
+            from: pasteboard,
+            stagingManager: stagingManager
+        ) { [weak self] urls in
+            _ = try? self?.addFilesToShelf(urls: urls)
+        }
     }
 }
 

@@ -35,6 +35,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         pasteboard.startMonitoring()
+        controller.configureShelfDrop(
+            dragTypes: ShelfDropResolver.supportedPasteboardTypes,
+            isEnabled: { [weak settings] in
+                settings?.isModuleEnabled("shelf") ?? true
+            },
+            validate: { pasteboard in
+                ShelfDropResolver.canAccept(pasteboard: pasteboard)
+            },
+            performDrop: { [weak notesShelf] pasteboard in
+                notesShelf?.handleDroppedPasteboard(pasteboard) ?? false
+            }
+        )
         let rootView = IslandRootView(
             controller: controller,
             pasteboardMonitor: pasteboard,

@@ -502,7 +502,10 @@ public struct IslandRootView: View {
                     case .notes:
                         QuickNotesView(store: notesShelfStore)
                     case .shelf:
-                        FileShelfView(store: notesShelfStore)
+                        FileShelfView(
+                            store: notesShelfStore,
+                            isDragTargeted: controller.isDragTargeted
+                        )
                     case .system:
                         SystemMetricsView(adapter: systemMetricsAdapter)
                     case .home:
